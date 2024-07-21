@@ -19,7 +19,7 @@ const userSchema = mongoose.Schema({
   { timestamps: true }
 )
 
-userSchema.methods.matchPassword = async function (enterredPassword){
+userSchema.methods.matchPassword = async function (enterredPassword) {
   return await bcrypt.compare(enterredPassword, this.password)
 }
 
