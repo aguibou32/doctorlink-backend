@@ -10,7 +10,7 @@ const notFound = (req, res, next) => {
   
   // Pass the error to the next middleware function
   next(error); // Basically saying go to the next error, if there is any in line.
-};
+}
 
 
 const errorHandler = (err, req, res, next) => {
@@ -37,4 +37,4 @@ const errorHandler = (err, req, res, next) => {
 };
 
 
-export default {notFound, errorHandler}
+export {notFound, errorHandler}

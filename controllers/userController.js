@@ -1,7 +1,7 @@
-import User from "../models/UserModel"
-import asyncHandler from "../middleware/asyncHandler"
+import User from "../models/UserModel.js"
+import asyncHandler from "../middleware/asyncHandler.js"
 import bcrypt from 'bcrypt'
-import generateToken from "../utils/generateToken"
+import generateToken from "../utils/generateToken.js"
 
 // @desc Register user & get token
 // @route POST api/users/
@@ -52,3 +52,4 @@ const registerUser = asyncHandler(async (req, res) => {
   }
 })
 
+export {registerUser}
