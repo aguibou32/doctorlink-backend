@@ -6,22 +6,30 @@ const userSchema = mongoose.Schema({
     type: String,
     required: true
   },
+  surname: {
+    type: String,
+    required: true
+  },
+  gender: {
+    type: String,
+    enum: ['male', 'female', 'other']
+  },
   email: {
     type: String,
     required: true,
-    unique:true,
+    unique: true,
   },
   phone: {
     type: String,
     required: true
   },
-  role: { 
-    type: String, 
-    enum: ['patient', 'doctor', 'admin'], 
-    default: 'patient' 
+  role: {
+    type: String,
+    enum: ['patient', 'doctor', 'admin'],
+    default: 'patient'
   },
   password: {
-    type: String, 
+    type: String,
     required: true
   }
 },

@@ -7,10 +7,10 @@ import generateToken from "../utils/generateToken.js"
 // @route POST api/users/
 // @access Public
 const registerUser = asyncHandler(async (req, res) => {
-  const { name, email, phone, dob, password } = req.body
+  const { name, surname, gender, email, phone, dob, password } = req.body
 
   // validating the inputs
-  if (!name || !email || !phone || !dob || !password) {
+  if (!name || !surname || !gender || !email || !phone || !dob || !password) {
     res.status(400)
     throw new Error('Please include all fields')
   }
@@ -29,6 +29,8 @@ const registerUser = asyncHandler(async (req, res) => {
   // Creating the user
   const user = await User.create({
     name,
+    surname,
+    gender,
     email,
     phone,
     dob,
@@ -41,6 +43,8 @@ const registerUser = asyncHandler(async (req, res) => {
     res.status(201).json({
       _id: user._id,
       name: user.name,
+      surname: user.surname,
+      gender: user.gender,
       email: user.email,
       phone: user.phone,
       dob: user.dob,
