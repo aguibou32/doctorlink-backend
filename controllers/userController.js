@@ -7,7 +7,7 @@ import generateToken from "../utils/generateToken.js"
 // @route POST api/users/
 // @access Public
 const registerUser = asyncHandler(async (req, res) => {
-  const { name, surname, gender, email, phone, dob, password } = req.body
+  const { name, surname, gender, dob, email, phone, password } = req.body
 
   // validating the inputs
   if (!name || !surname || !gender || !email || !phone || !dob || !password) {
@@ -31,13 +31,13 @@ const registerUser = asyncHandler(async (req, res) => {
     name,
     surname,
     gender,
+    dob,
     email,
     phone,
-    dob,
     password: hashedPassword
   })
 
-  if(user){
+  if (user) {
     generateToken(res, user._id)
 
     res.status(201).json({
@@ -45,15 +45,56 @@ const registerUser = asyncHandler(async (req, res) => {
       name: user.name,
       surname: user.surname,
       gender: user.gender,
+      dob: user.dob,
       email: user.email,
       phone: user.phone,
-      dob: user.dob,
       role: user.role
     })
-  }else{
+  } else {
     res.status(400)
     throw new Error('Invalid user data.')
   }
 })
 
-export {registerUser}
+// @desc login user & get token
+// @route POST api/users/login
+// @access Public
+const loginUser = asyncHandler(async (req, res) => {
+
+  const { email, password } = req.body
+  const user = await User.findOne({ email: email })
+
+  if (user && (await user.matchPassword(password))) {
+
+    generateToken(res, user._id)
+
+    res.json({
+      _id: user._id,
+      name: user.name,
+      surname: user.surname,
+      gender: user.gender,
+      dob: user.dob,
+      email: user.email,
+      phone: user.phone,
+      role: user.role
+    })
+  } else {
+    res.status(401)
+    throw new Error('Invalid credentials')
+  }
+})
+
+// @desc Logout user & clear cookies
+// @route POST /api/users
+// @access Private
+const logoutUser = asyncHandler(async(req, res) => {
+  res.cookie('jwt', '', {
+    httpOnly: true,
+    expires: new Date(0)
+  })
+
+  res.status(200).json({message: 'User logged out'})
+})
+
+
+export { registerUser, loginUser, logoutUser }

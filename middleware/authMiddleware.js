@@ -1,6 +1,6 @@
 import jwt from 'jsonwebtoken'
-import asyncHandler from './asyncHandler'
-import User from '../models/UserModel'
+import asyncHandler from './asyncHandler.js'
+import User from '../models/UserModel.js'
 
 
 // Protect Routes
@@ -24,6 +24,7 @@ const protect = asyncHandler(async (req, res, next) => {
   }
 })
 
+// Only admin access
 const admin = (req, res, next) => {
   if(req.user && req.user.role === 'admin'){
     next()
@@ -32,3 +33,5 @@ const admin = (req, res, next) => {
     throw new Error('Not authorized as admin')
   }
 }
+
+export {protect, admin}
