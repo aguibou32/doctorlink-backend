@@ -1,7 +1,7 @@
 import mongoose from "mongoose"
 import bcrypt from 'bcrypt'
 
-const userSchema = mongoose.Schema({
+const userSchema = new mongoose.Schema({
   name: {
     type: String,
     required: true
@@ -32,6 +32,14 @@ const userSchema = mongoose.Schema({
     type: String,
     enum: ['patient', 'doctor', 'admin'],
     default: 'patient'
+  },
+  isEmailVerified: {
+    type: Boolean,
+    default: false
+  },
+  isPhoneNumberVerified: {
+    type: Boolean,
+    default: false
   },
   password: {
     type: String,
