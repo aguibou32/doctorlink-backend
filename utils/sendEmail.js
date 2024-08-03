@@ -1,27 +1,53 @@
+import dotenv from 'dotenv'
+dotenv.config()
 import nodemailer from 'nodemailer'
+import fs from 'fs'
+import path from 'path'
+import { fileURLToPath } from 'url'
+import { dirname } from 'path'
 
-const sendEmail = async ({ to, subject, text }) => {
-  let transporter = nodemailer.createTransport({
-    host: process.env.EMAIL_HOST,
-    port: parseInt(process.env.EMAIL_PORT, 10), 
-    secure: process.env.EMAIL_SECURE === 'true', 
-    auth: {
-      user: process.env.EMAIL_USER,
-      pass: process.env.EMAIL_PASS,
-    },
-  });
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
+const transporter = nodemailer.createTransport({
+  host: process.env.EMAIL_HOST,
+  port: parseInt(process.env.EMAIL_PORT, 10),
+  secure: process.env.EMAIL_SECURE === 'true',
+  auth: {
+    user: process.env.EMAIL_USER,
+    pass: process.env.EMAIL_PASS,
+  },
+})
+
+export const sendVerificationEmail = async (toEmail, name, verificationCode) => {
   try {
-    await transporter.sendMail({
-      from: `"Doctolink" <${process.env.EMAIL_USER}>`,
-      to,
-      subject,
-      text,
-    });
-    console.log(`Email sent to ${to}`);
+    const templatePath = path.join(__dirname, 'emailVerification', 'emailVerification.html')
+    // console.log(`Template path: ${templatePath}`)
+
+    // Check if the file exists
+    if (!fs.existsSync(templatePath)) {
+      console.error('Template file does not exist at path:', templatePath)
+      throw new Error('Template file does not exist')
+    }
+
+    // Read the HTML template
+    let htmlTemplate = fs.readFileSync(templatePath, 'utf-8')
+
+    // Replace the placeholder with the actual verification code
+    htmlTemplate = htmlTemplate.replace('{{verificationCode}}', verificationCode)
+    .replace('{{name}}', name)
+
+    // Send email
+    const info = await transporter.sendMail({
+      from: `DocLink <noreply@doclink.com>`,
+      to: toEmail,
+      subject: 'Please Verify Your Email Address',
+      html: htmlTemplate,
+    })
+
+    // console.log('Email sent: %s', info.messageId)
   } catch (error) {
-    console.error(`Error sending email: ${error.message}`);
+    console.error('Error sending email:', error)
+    throw new Error('Failed to send verification email')
   }
 };
-
-export default sendEmail;

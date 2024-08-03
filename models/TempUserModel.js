@@ -42,7 +42,7 @@ const tempUserSchema = new mongoose.Schema({
   createdAt: {
     type: Date,
     default: Date.now,
-    index: { expires: '1h' }
+    index: { expires: '30m' }
   }
 }, 
 { timestamps: true })

@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Email Verification</title>
+    <style>
+      @import url("https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css");
+    </style>
+  </head>
+  <body class="min-h-screen flex justify-center items-center p-6 bg-gray-100">
+    <div class="flex flex-col space-y-6">
+      <img src="logo.svg" class="w-36" alt="logo" />
+      <h1 class="mb-4 text-xl font-bold text-gray-800">
+        Confirm your email address
+      </h1>
+      <div class="max-w-3xl p-8 bg-white rounded-lg shadow-sm">
+        <div class="text-black-600 mb-4">
+          <p class="mb-4">Hey {{name}},</p>
+          <p>
+            There's one quick step you need to complete before creating your DocLink account. Please enter this verification code to confirm
+          this is your email.
+          </p>
+        </div>
+        <div
+          class="border-to-blue-600 p-4 text-xl font-semibold text-center text-gray-800 bg-blue-100 rounded-lg"
+        >
+          <span class="text-5xl">{{verificationCode}}</span>
+        </div>
+        <p class="text-black-600 mt-4">
+          Verification codes expire after 30 minutes. <br/> If you did not request this code, please ignore this email.
+        </p>
+        <div class="mt-6">
+          <p class="text-black-600">Thank you for using our service!</p>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

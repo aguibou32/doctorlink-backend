@@ -1,0 +1,8 @@
+{
+  "invalid_credentials": "Invalid credentials.",
+  "terms_and_conditions_error": "You have to accept the terms and conditions",
+  "include_all_fields": "Please include all fields!",
+  "email_in_use": "Email address already in use!",
+  "email_verification": "Please verify your email by clicking the link: {{verificationUrl}}",
+  "forgot_password": "Forgot Password"
+}

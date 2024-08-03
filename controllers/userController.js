@@ -3,25 +3,34 @@ import TempUser from "../models/TempUserModel.js"
 import asyncHandler from "../middleware/asyncHandler.js"
 import bcrypt from 'bcrypt'
 import generateToken from "../utils/generateToken.js"
-import sendEmail from "../utils/sendEmail.js"
+import { sendVerificationEmail } from "../utils/sendEmail.js"
+
 
 // @desc Register user & get token
 // @route POST api/users/
 // @access Public
 const registerUser = asyncHandler(async (req, res) => {
-  const { name, surname, gender, dob, email, phone, password } = req.body
+
+  const { t } = req
+
+  const { name, surname, gender, dob, email, phone, password, terms } = req.body
+
+  if(!terms){
+    res.status(400)
+    throw new Error(t('terms_and_conditions_error'))
+  }
 
   // Validating the inputs
-  if (!name || !surname || !gender || !email || !phone || !dob || !password) {
+  if (!name || !surname || !gender || !email || !phone || !dob || !password){
     res.status(400)
-    throw new Error('Please include all fields!')
+    throw new Error(t('include_all_fields'))
   }
 
   // Checking if the user already exists
-  const userExists = await User.findOne({ email })
+  const userExists = await TempUser.findOne({ email })
   if (userExists) {
-    res.status(400);
-    throw new Error('User already exists!')
+    res.status(400)
+    throw new Error(t('email_in_use'))
   }
 
   // Hashing the password
@@ -37,7 +46,7 @@ const registerUser = asyncHandler(async (req, res) => {
     email,
     phone,
     password: hashedPassword
-  });
+  })
 
   // Generate verification token
   const verificationToken = tempUser.generateVerificationToken()
@@ -45,23 +54,25 @@ const registerUser = asyncHandler(async (req, res) => {
   // Save the temporary user
   await tempUser.save()
 
-  // Send verification email
-  const verificationUrl = `${req.protocol}://${req.get('host')}/api/users/verify-email?token=${verificationToken}`
-  await sendEmail({
-    to: tempUser.email,
-    subject: 'Email Verification',
-    text: `Please verify your email by clicking the link: ${verificationUrl}`
-  });
+  try {
+    sendVerificationEmail(tempUser.email, tempUser.name, verificationToken)
+  } catch (error) {
+    res.status(400)
+    throw new error('Cannot send email')
+  }
 
   res.status(201).json({
     email: tempUser.email
-  });
-});
+  })
+})
 
 // @desc login user & get token
 // @route POST api/users/login
 // @access Public
 const loginUser = asyncHandler(async (req, res) => {
+
+  const { t } = req
+  
   const { email, password } = req.body;
   const user = await User.findOne({ email: email })
 
@@ -77,23 +88,23 @@ const loginUser = asyncHandler(async (req, res) => {
       email: user.email,
       phone: user.phone,
       role: user.role
-    });
+    })
+
   } else {
     res.status(401);
-    throw new Error('Invalid credentials.')
+    throw new Error(t('invalid_credentials'))
   }
-});
+})
 
 // @desc Verify email
 // @route GET api/users/verify-email
 // @access Public
 const verifyEmail = asyncHandler(async (req, res) => {
 
-  const { token } = req.body
+  const { email, token } = req.body
 
-  console.log(token)
-
-  const tempUser = await TempUser.findOne({ verificationToken: token })
+  // console.log(token)
+  const tempUser = await TempUser.findOne({ email:email, verificationToken: token })
 
   if (!tempUser) {
     res.status(400)
@@ -156,14 +167,12 @@ const resendVerificationEmail = asyncHandler( async (req, res) => {
   tempUser.verificationToken = newVerificationToken
   tempUser.save()
   
-  const verificationUrl = `${req.protocol}://${req.get('host')}/api/users/verify-email?token=${newVerificationToken}`
-
-  await sendEmail({
-    to: tempUser.email,
-    subject: 'Email verification',
-    text: `Please verify your email by clicking the link: ${verificationUrl}`
-  })
-
+  try {
+    sendVerificationEmail(tempUser.email, tempUser.name, newVerificationToken)
+  } catch (error) {
+    res.status(400)
+    throw new error('Cannot send email')
+  }
 
   res.status(200).json({message: 'Email de verification renvoyé.'})
 })
