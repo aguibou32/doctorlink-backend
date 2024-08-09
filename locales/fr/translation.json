@@ -4,5 +4,7 @@
   "include_all_fields": "Veuillez inclure tous les champs !",
   "email_in_use": "Adresse e-mail déjà utilisée !",
   "email_verification": "Veuillez vérifier votre e-mail en cliquant sur le lien : {{verificationUrl}}",
-  "forgot_password": "Mot de passe oublié"
+  "forgot_password": "Mot de passe oublié",
+  "userNotFound": "Utilisateur non trouvé",
+  "userUpdatedSuccessfully": "Informations mises à jour"
 }

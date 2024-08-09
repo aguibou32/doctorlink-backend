@@ -18,7 +18,6 @@ const userSchema = new mongoose.Schema({
     type: Date,
     required: true
   },
-
   email: {
     type: String,
     required: true,
@@ -27,6 +26,12 @@ const userSchema = new mongoose.Schema({
   phone: {
     type: String,
     required: true
+  },
+  birthPlace: {
+    type: String,
+  },
+  birthCountry: {
+    type: String,
   },
   role: {
     type: String,
@@ -44,14 +49,18 @@ const userSchema = new mongoose.Schema({
   password: {
     type: String,
     required: true
+  },
+  address: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'UserAddressModel' // Use the model name as a string
   }
 },
   { timestamps: true }
-)
+);
 
-userSchema.methods.matchPassword = async function (enterredPassword) {
-  return await bcrypt.compare(enterredPassword, this.password)
-}
+userSchema.methods.matchPassword = async function (enteredPassword) {
+  return await bcrypt.compare(enteredPassword, this.password);
+};
 
-const User = mongoose.model("User", userSchema)
-export default User
+const User = mongoose.model("User", userSchema);
+export default User;

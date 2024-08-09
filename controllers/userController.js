@@ -15,13 +15,13 @@ const registerUser = asyncHandler(async (req, res) => {
 
   const { name, surname, gender, dob, email, phone, password, terms } = req.body
 
-  if(!terms){
+  if (!terms) {
     res.status(400)
     throw new Error(t('terms_and_conditions_error'))
   }
 
   // Validating the inputs
-  if (!name || !surname || !gender || !email || !phone || !dob || !password){
+  if (!name || !surname || !gender || !email || !phone || !dob || !password) {
     res.status(400)
     throw new Error(t('include_all_fields'))
   }
@@ -72,11 +72,11 @@ const registerUser = asyncHandler(async (req, res) => {
 const loginUser = asyncHandler(async (req, res) => {
 
   const { t } = req
-  
+
   const { email, password } = req.body;
   const user = await User.findOne({ email: email })
 
-  if (user && (await user.matchPassword(password))){
+  if (user && (await user.matchPassword(password))) {
     generateToken(res, user._id)
 
     return res.json({
@@ -104,7 +104,7 @@ const verifyEmail = asyncHandler(async (req, res) => {
   const { email, token } = req.body
 
   // console.log(token)
-  const tempUser = await TempUser.findOne({ email:email, verificationToken: token })
+  const tempUser = await TempUser.findOne({ email: email, verificationToken: token })
 
   if (!tempUser) {
     res.status(400)
@@ -144,11 +144,11 @@ const verifyEmail = asyncHandler(async (req, res) => {
 // @desc Resend verfication email
 // @route POST api/users/resend-verification-email
 // @access Public
-const resendVerificationEmail = asyncHandler( async (req, res) => {
+const resendVerificationEmail = asyncHandler(async (req, res) => {
 
   const { email } = req.body
 
-  if(!email){
+  if (!email) {
     res.status(400)
     throw new Error('Veuillez fournir un email.')
   }
@@ -156,7 +156,7 @@ const resendVerificationEmail = asyncHandler( async (req, res) => {
   const tempUser = await TempUser.findOne({ email })
 
   // Check if there is a user with this email
-  if(!tempUser){
+  if (!tempUser) {
     res.status(400)
     throw new Error('Utilisateur introuvable ou deja verifié.')
   }
@@ -166,7 +166,7 @@ const resendVerificationEmail = asyncHandler( async (req, res) => {
 
   tempUser.verificationToken = newVerificationToken
   tempUser.save()
-  
+
   try {
     sendVerificationEmail(tempUser.email, tempUser.name, newVerificationToken)
   } catch (error) {
@@ -174,7 +174,7 @@ const resendVerificationEmail = asyncHandler( async (req, res) => {
     throw new error('Cannot send email')
   }
 
-  res.status(200).json({message: 'Email de verification renvoyé.'})
+  res.status(200).json({ message: 'Email de verification renvoyé.' })
 })
 
 
@@ -189,4 +189,64 @@ const logoutUser = asyncHandler(async (req, res) => {
   res.status(200).json({ message: 'User logged out' })
 })
 
-export { registerUser, loginUser, verifyEmail, resendVerificationEmail, logoutUser }
+
+// @desc Update user 
+// @route PUT /api/users/update
+// @access Private
+const updateUserProfile = asyncHandler(async (req, res) => {
+
+  const { t } = req
+  const user = await User.findById(req.user.id)
+
+
+  if (user) {
+
+    user.name = req.body.name || user.name
+    user.surname = req.body.surname || user.surname
+    user.gender = req.body.gender || user.gender
+    user.dob = req.body.dob || user.dob
+    user.email = req.body.email || user.email
+    user.phone = req.body.phone || user.phone
+    user.birthPlace = req.body.birthPlace || user.birthPlace
+    user.birthCountry = req.body.birthCountry || user.birthCountry
+
+    if (req.body.password) {
+      const salt = await bcrypt.genSalt(10)
+      const password = req.body.password
+      const hashedPassword = await bcrypt.hash(password, salt)
+      user.password = hashedPassword
+    }
+
+    await new Promise((resolve) => setTimeout(resolve, 5000))
+
+    const updatedUser = await user.save()
+
+    res.status(200).json({
+      message: t('userUpdatedSuccessfully'),
+      user: {
+        _id: updatedUser._id,
+        name: updatedUser.name,
+        surname: updatedUser.surname,
+        gender: updatedUser.gender,
+        dob: updatedUser.dob,
+        email: updatedUser.email,
+        phone: updatedUser.phone,
+        birthPlace: updatedUser.birthPlace,
+        birthCountry: updatedUser.birthCountry
+      }
+    })
+
+  } else {
+    res.status(404)
+    throw new Error(t('userNotFound'))
+  }
+})
+
+export {
+  registerUser,
+  loginUser,
+  verifyEmail,
+  resendVerificationEmail,
+  updateUserProfile,
+  logoutUser
+}
