@@ -6,5 +6,11 @@
   "email_verification": "Veuillez vérifier votre e-mail en cliquant sur le lien : {{verificationUrl}}",
   "forgot_password": "Mot de passe oublié",
   "userNotFound": "Utilisateur non trouvé",
-  "userUpdatedSuccessfully": "Informations mises à jour"
+  "userUpdatedSuccessfully": "Informations mises à jour",
+  "emailVerifiedMessage": "Email verified successfully",
+  "invalidOrExpiredToken": "Token invalide ou expiré.",
+  "pleaseProvideEmail": "Veuillez fournir un email.",
+  "userNotFoundOrAlreadyVerified": "Utilisateur introuvable ou déjà vérifié.",
+  "cannotSendEmail": "Impossible d'envoyer l'email.",
+  "verificationEmailResent": "Email de vérification renvoyé."
 }

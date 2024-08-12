@@ -87,6 +87,10 @@ const loginUser = asyncHandler(async (req, res) => {
       dob: user.dob,
       email: user.email,
       phone: user.phone,
+      birthPlace: user.birthPlace,
+      birthCountry: user.birthCountry,
+      isEmailVerified: user.isEmailVerified,
+      isPhoneNumberVerified: user.isPhoneNumberVerified,
       role: user.role
     })
 
@@ -108,7 +112,7 @@ const verifyEmail = asyncHandler(async (req, res) => {
 
   if (!tempUser) {
     res.status(400)
-    throw new Error('Token invalide ou expiré.')
+    throw new Error(t('invalidOrExpiredToken'))
   }
 
   // Create a user that is permanent
@@ -137,7 +141,7 @@ const verifyEmail = asyncHandler(async (req, res) => {
     email: user.email,
     phone: user.phone,
     role: user.role,
-    message: 'Email verified successfully'
+    message: ''
   })
 })
 
@@ -150,7 +154,7 @@ const resendVerificationEmail = asyncHandler(async (req, res) => {
 
   if (!email) {
     res.status(400)
-    throw new Error('Veuillez fournir un email.')
+    throw new Error(t('pleaseProvideEmail'))
   }
 
   const tempUser = await TempUser.findOne({ email })
@@ -158,7 +162,7 @@ const resendVerificationEmail = asyncHandler(async (req, res) => {
   // Check if there is a user with this email
   if (!tempUser) {
     res.status(400)
-    throw new Error('Utilisateur introuvable ou deja verifié.')
+    throw new Error(t('userNotFoundOrAlreadyVerified'))
   }
 
   // Generate verification token
@@ -171,10 +175,10 @@ const resendVerificationEmail = asyncHandler(async (req, res) => {
     sendVerificationEmail(tempUser.email, tempUser.name, newVerificationToken)
   } catch (error) {
     res.status(400)
-    throw new error('Cannot send email')
+    throw new error(t('cannotSendEmail'))
   }
 
-  res.status(200).json({ message: 'Email de verification renvoyé.' })
+  res.status(200).json({ message: t('verificationEmailResent') })
 })
 
 

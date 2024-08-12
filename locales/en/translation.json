@@ -6,5 +6,11 @@
   "email_verification": "Please verify your email by clicking the link: {{verificationUrl}}",
   "forgot_password": "Forgot Password",
   "userNotFound": "User not found",
-  "userUpdatedSuccessfully": "information updated"
+  "userUpdatedSuccessfully": "information updated",
+  "emailVerifiedMessage": "Email verified successfully",
+  "invalidOrExpiredToken": "Invalid or expired token.",
+  "pleaseProvideEmail": "Please provide an email.",
+  "userNotFoundOrAlreadyVerified": "User not found or already verified.",
+  "cannotSendEmail": "Cannot send email.",
+  "verificationEmailResent": "Verification email resent."
 }
