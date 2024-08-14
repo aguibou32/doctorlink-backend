@@ -58,7 +58,7 @@ const registerUser = asyncHandler(async (req, res) => {
     sendVerificationEmail(tempUser.email, tempUser.name, verificationToken)
   } catch (error) {
     res.status(400)
-    throw new error('Cannot send email')
+    throw new Error(t('cannotSendEmail'))
   }
 
   res.status(201).json({
@@ -73,7 +73,7 @@ const loginUser = asyncHandler(async (req, res) => {
 
   const { t } = req
 
-  const { email, password } = req.body;
+  const { email, password } = req.body
   const user = await User.findOne({ email: email })
 
   if (user && (await user.matchPassword(password))) {
@@ -99,6 +99,31 @@ const loginUser = asyncHandler(async (req, res) => {
     throw new Error(t('invalid_credentials'))
   }
 })
+
+
+// @desc send verification via email to verify new email change
+// @route POST api/users/sendEmailChangeVerification
+// @access private
+const sendEmailChangeVerification = asyncHandler(async (req, res) => {
+
+  const { t } = req
+
+  const user = await User.findById(req.user.id)
+
+  const { newEmail } = req.body
+  const verificationCode = user.generateVerificationToken()
+
+  try {
+    sendVerificationEmail(newEmail, user.name, verificationCode)
+  } catch (error) {
+    res.status(400)
+    throw new Error(t('cannotSendEmail'))
+  }
+  res.status(201).json({
+    email: newEmail
+  })
+})
+
 
 // @desc Verify email
 // @route GET api/users/verify-email
@@ -248,6 +273,7 @@ const updateUserProfile = asyncHandler(async (req, res) => {
 
 export {
   registerUser,
+  sendEmailChangeVerification,
   loginUser,
   verifyEmail,
   resendVerificationEmail,

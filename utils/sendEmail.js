@@ -21,6 +21,7 @@ const transporter = nodemailer.createTransport({
 
 export const sendVerificationEmail = async (toEmail, name, verificationCode) => {
   try {
+    
     const templatePath = path.join(__dirname, 'emailVerification', 'emailVerification.html')
     // console.log(`Template path: ${templatePath}`)
 
@@ -38,7 +39,7 @@ export const sendVerificationEmail = async (toEmail, name, verificationCode) => 
     .replace('{{name}}', name)
 
     // Send email
-    const info = await transporter.sendMail({
+      await transporter.sendMail({
       from: `DocLink <noreply@doclink.com>`,
       to: toEmail,
       subject: 'Please Verify Your Email Address',
@@ -50,4 +51,4 @@ export const sendVerificationEmail = async (toEmail, name, verificationCode) => 
     console.error('Error sending email:', error)
     throw new Error('Failed to send verification email')
   }
-};
+}
