@@ -5,75 +5,136 @@ import bcrypt from 'bcrypt'
 import generateToken from "../utils/generateToken.js"
 import { sendVerificationEmail } from "../utils/sendEmail.js"
 
+// Helper function to generate a verification token for both 
+// TempUser or regular User (DRY principle)
+const generateAndSaveToken = async (user) => {
+  const verificationToken = user.generateVerificationToken() // Corrected to method call
+  await user.save()
+  return verificationToken
+}
+
+// Helper function to send verification email to both 
+// TempUser or regular User (DRY principle)
+const sendVerificationTokenEmail = async (email, name, token, t) => {
+  try {
+    await sendVerificationEmail(email, name, token) // Removed t if not needed
+  } catch (error) {
+    throw new Error(t('cannotSendEmail'))
+  }
+}
+
+// Helper function to verify token for TempUser or regular User
+const verifyToken = (user, token, t) => {
+  if (!user) throw new Error(t('userNotFound'))
+  if (user.verificationToken !== token) throw new Error(t('invalidToken'))
+  if (user.verificationExpiry && Date.now() > user.verificationExpiry) throw new Error(t('expiredToken'))
+}
 
 // @desc Register user & get token
 // @route POST api/users/
 // @access Public
 const registerUser = asyncHandler(async (req, res) => {
-
   const { t } = req
-
   const { name, surname, gender, dob, email, phone, password, terms } = req.body
 
   if (!terms) {
     res.status(400)
-    throw new Error(t('terms_and_conditions_error'))
+    throw new Error(t('termsAndConditionsError'))
   }
 
-  // Validating the inputs
   if (!name || !surname || !gender || !email || !phone || !dob || !password) {
     res.status(400)
-    throw new Error(t('include_all_fields'))
+    throw new Error(t('includeAllFields'))
   }
 
-  // Checking if the user already exists
   const userExists = await TempUser.findOne({ email })
   if (userExists) {
     res.status(400)
-    throw new Error(t('email_in_use'))
+    throw new Error(t('emailInUse'))
   }
 
-  // Hashing the password
-  const salt = await bcrypt.genSalt(10);
+  const salt = await bcrypt.genSalt(10)
   const hashedPassword = await bcrypt.hash(password, salt)
 
-  // Creating the temporary user
   const tempUser = new TempUser({
     name,
     surname,
     gender,
-    dob,
     email,
     phone,
+    dob,
     password: hashedPassword
   })
 
-  // Generate verification token
-  const verificationToken = tempUser.generateVerificationToken()
+  const verificationToken = await generateAndSaveToken(tempUser)
+  await sendVerificationTokenEmail(tempUser.email, tempUser.name, verificationToken, t)
 
-  // Save the temporary user
-  await tempUser.save()
-
-  try {
-    sendVerificationEmail(tempUser.email, tempUser.name, verificationToken)
-  } catch (error) {
-    res.status(400)
-    throw new Error(t('cannotSendEmail'))
-  }
-
-  res.status(201).json({
-    email: tempUser.email
-  })
+  res.status(201).json({ "email": tempUser.email })
 })
 
-// @desc login user & get token
+// @desc Verify email
+// @route POST api/users/verify-email
+// @access Public
+const verifyEmail = asyncHandler(async (req, res) => {
+  const { t } = req
+  const { email, token } = req.body
+
+  const tempUser = await TempUser.findOne({ email })
+  verifyToken(tempUser, token, t)
+
+  const user = await User.create({
+    name: tempUser.name,
+    surname: tempUser.surname,
+    gender: tempUser.gender,
+    dob: tempUser.dob,
+    email: tempUser.email,
+    phone: tempUser.phone,
+    isEmailVerified: true,
+    password: tempUser.password
+  })
+
+  // Delete temporary user
+  await tempUser.deleteOne()
+
+  // Generate token for user session (to log in the user)
+  generateToken(res, user._id)
+  res.status(200).json(user)
+})
+
+// @desc Resend verification email
+// @route POST api/users/resend-verification-email
+// @access Public
+const resendVerificationEmail = asyncHandler(async (req, res) => {
+  const { t } = req
+  const { email } = req.body
+
+  if (!email) {
+    res.status(400)
+    throw new Error(t('pleaseProvideEmail'))
+  }
+
+  const tempUser = await TempUser.findOne({ email })
+  if (!tempUser) {
+    res.status(400)
+    throw new Error(t('userNotFoundOrAlreadyVerified'))
+  }
+
+  // Generate and save new verification token
+  const newVerificationToken = await generateAndSaveToken(tempUser)
+
+  // Resend verification email
+  await sendVerificationTokenEmail(tempUser.email, tempUser.name, newVerificationToken, t)
+
+  res.status(200).json({ message: t('verificationEmailResent') })
+})
+
+// @desc Login user & get token
 // @route POST api/users/login
 // @access Public
 const loginUser = asyncHandler(async (req, res) => {
-
   const { t } = req
-
   const { email, password } = req.body
+  
   const user = await User.findOne({ email: email })
 
   if (user && (await user.matchPassword(password))) {
@@ -93,119 +154,11 @@ const loginUser = asyncHandler(async (req, res) => {
       isPhoneNumberVerified: user.isPhoneNumberVerified,
       role: user.role
     })
-
   } else {
-    res.status(401);
-    throw new Error(t('invalid_credentials'))
+    res.status(401)
+    throw new Error(t('invalidCredentials'))
   }
 })
-
-
-// @desc send verification via email to verify new email change
-// @route POST api/users/sendEmailChangeVerification
-// @access private
-const sendEmailChangeVerification = asyncHandler(async (req, res) => {
-
-  const { t } = req
-
-  const user = await User.findById(req.user.id)
-
-  const { newEmail } = req.body
-  const verificationCode = user.generateVerificationToken()
-
-  try {
-    sendVerificationEmail(newEmail, user.name, verificationCode)
-  } catch (error) {
-    res.status(400)
-    throw new Error(t('cannotSendEmail'))
-  }
-  res.status(201).json({
-    email: newEmail
-  })
-})
-
-
-// @desc Verify email
-// @route GET api/users/verify-email
-// @access Public
-const verifyEmail = asyncHandler(async (req, res) => {
-
-  const { email, token } = req.body
-
-  // console.log(token)
-  const tempUser = await TempUser.findOne({ email: email, verificationToken: token })
-
-  if (!tempUser) {
-    res.status(400)
-    throw new Error(t('invalidOrExpiredToken'))
-  }
-
-  // Create a user that is permanent
-  const user = await User.create({
-    name: tempUser.name,
-    surname: tempUser.surname,
-    gender: tempUser.gender,
-    dob: tempUser.dob,
-    email: tempUser.email,
-    phone: tempUser.phone,
-    isEmailVerified: true,
-    password: tempUser.password
-  })
-
-  // Delete the temporary user
-  await tempUser.deleteOne()
-
-  // Generate the token that will log in the user
-  generateToken(res, user._id)
-  res.status(200).json({
-    _id: user._id,
-    name: user.name,
-    surname: user.surname,
-    gender: user.gender,
-    dob: user.dob,
-    email: user.email,
-    phone: user.phone,
-    role: user.role,
-    message: ''
-  })
-})
-
-// @desc Resend verfication email
-// @route POST api/users/resend-verification-email
-// @access Public
-const resendVerificationEmail = asyncHandler(async (req, res) => {
-
-  const { email } = req.body
-
-  if (!email) {
-    res.status(400)
-    throw new Error(t('pleaseProvideEmail'))
-  }
-
-  const tempUser = await TempUser.findOne({ email })
-
-  // Check if there is a user with this email
-  if (!tempUser) {
-    res.status(400)
-    throw new Error(t('userNotFoundOrAlreadyVerified'))
-  }
-
-  // Generate verification token
-  const newVerificationToken = tempUser.generateVerificationToken()
-
-  tempUser.verificationToken = newVerificationToken
-  tempUser.save()
-
-  try {
-    sendVerificationEmail(tempUser.email, tempUser.name, newVerificationToken)
-  } catch (error) {
-    res.status(400)
-    throw new error(t('cannotSendEmail'))
-  }
-
-  res.status(200).json({ message: t('verificationEmailResent') })
-})
-
 
 // @desc Logout user & clear cookies
 // @route POST /api/users/logout
@@ -214,22 +167,18 @@ const logoutUser = asyncHandler(async (req, res) => {
   res.cookie('jwt', '', {
     httpOnly: true,
     expires: new Date(0)
-  });
+  })
   res.status(200).json({ message: 'User logged out' })
 })
-
 
 // @desc Update user 
 // @route PUT /api/users/update
 // @access Private
 const updateUserProfile = asyncHandler(async (req, res) => {
-
   const { t } = req
   const user = await User.findById(req.user.id)
 
-
   if (user) {
-
     user.name = req.body.name || user.name
     user.surname = req.body.surname || user.surname
     user.gender = req.body.gender || user.gender
@@ -245,8 +194,6 @@ const updateUserProfile = asyncHandler(async (req, res) => {
       const hashedPassword = await bcrypt.hash(password, salt)
       user.password = hashedPassword
     }
-
-    await new Promise((resolve) => setTimeout(resolve, 5000))
 
     const updatedUser = await user.save()
 
@@ -271,12 +218,78 @@ const updateUserProfile = asyncHandler(async (req, res) => {
   }
 })
 
+// @desc Send verification email for email change
+// @route POST api/users/sendEmailChangeVerification
+// @access Private
+const sendEmailChangeVerification = asyncHandler(async (req, res) => {
+  const { t } = req
+  const user = await User.findById(req.user.id)
+  const { newEmail } = req.body
+
+  const verificationToken = await generateAndSaveToken(user)
+
+  // Send verification email
+  await sendVerificationTokenEmail(newEmail, user.name, verificationToken, t)
+
+  res.status(201).json({ email: newEmail })
+})
+
+
+// @desc Resend verification email for email change
+// @route POST api/users/resend-email-change-verification
+// @access Private
+const resendEmailChangeVerification = asyncHandler(async (req, res) => {
+  const { t } = req
+  const user = await User.findById(req.user.id)
+  const { newEmail } = req.body
+
+  if (!newEmail) {
+    res.status(400)
+    throw new Error(t('pleaseProvideEmail'))
+  }
+
+  const newVerificationToken = await generateAndSaveToken(user)
+
+  // Resend verification email
+  await sendVerificationTokenEmail(newEmail, user.name, newVerificationToken, t)
+  res.status(200).json({ message: t('verificationEmailResent') })
+})
+
+// @desc Verify user token for email change
+// @route POST api/users/verifyEmailChange
+// @access Private
+const verifyEmailChange = asyncHandler(async (req, res) => {
+  const { t } = req
+  const { newEmail, token } = req.body
+
+  const user = await User.findById(req.user.id)
+  verifyToken(user, token, t)
+
+  // Update the email and clear the verification token and expiry
+  user.email = newEmail
+  user.verificationToken = undefined
+  user.verificationExpiry = undefined
+
+  await user.save()
+
+  res.status(200).json({
+    message: t("emailAddressUpdated"),
+    email: user.email
+  })
+})
+
+
+
+
+
 export {
   registerUser,
-  sendEmailChangeVerification,
-  loginUser,
   verifyEmail,
   resendVerificationEmail,
+  loginUser,
+  logoutUser,
   updateUserProfile,
-  logoutUser
+  sendEmailChangeVerification,
+  resendEmailChangeVerification,
+  verifyEmailChange
 }

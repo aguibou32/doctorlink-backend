@@ -4,22 +4,27 @@ const router = express.Router()
 import { protect, admin } from '../middleware/authMiddleware.js'
 import {
   registerUser,
-  sendEmailChangeVerification,
-  loginUser,
-  updateUserProfile,
   verifyEmail,
   resendVerificationEmail,
-  logoutUser
+  loginUser,
+  logoutUser,
+  updateUserProfile,
+  sendEmailChangeVerification,
+  resendEmailChangeVerification,
+  verifyEmailChange,
+
 } from '../controllers/userController.js'
 
 import checkObjectId from '../middleware/checkObjectId.js'
 
 router.route('/').post(registerUser)
-router.route('/login').post(loginUser)
-router.route('/sendEmailChangeVerification').post(protect, sendEmailChangeVerification)
-router.route('/update').put(protect, updateUserProfile)
 router.route('/verify-email').post(verifyEmail)
 router.route('/resend-email-verification').post(resendVerificationEmail)
+router.route('/login').post(loginUser)
 router.route('/logout').post(protect, logoutUser)
+router.route('/update').put(protect, updateUserProfile)
+router.route('/send-email-change-verification').post(protect, sendEmailChangeVerification),
+router.route('/resend-email-change-verification').post(protect, resendEmailChangeVerification)
+router.route('/verify-new-email').post(protect, verifyEmailChange)
 
 export default router 

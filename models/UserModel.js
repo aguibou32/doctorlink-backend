@@ -53,6 +53,12 @@ const userSchema = new mongoose.Schema({
   address: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'UserAddressModel' // Use the model name as a string
+  },
+  verificationToken: {
+    type: String,
+  },
+  verificationExpiry: {
+    type: Date,
   }
 },
   { timestamps: true }
@@ -61,6 +67,7 @@ const userSchema = new mongoose.Schema({
 userSchema.methods.generateVerificationToken = function() {
   const randomDigits = () => Math.floor(100000 + Math.random() * 900000).toString()
   this.verificationToken = randomDigits()
+  this.verificationExpiry = Date.now() + 30 * 60 * 1000
   return this.verificationToken
 }
 

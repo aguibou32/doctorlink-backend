@@ -1,16 +1,19 @@
 {
-  "invalid_credentials": "Invalid credentials.",
-  "terms_and_conditions_error": "You have to accept the terms and conditions",
-  "include_all_fields": "Please include all fields!",
-  "email_in_use": "Email address already in use!",
+  "invalidCredentials": "Invalid credentials. Please try again.",
+  "termsAndConditionsError": "You have to accept the terms and conditions",
+  "includeAllFields": "Please include all fields!",
+  "emailInUse": "Email address already in use!",
   "email_verification": "Please verify your email by clicking the link: {{verificationUrl}}",
   "forgot_password": "Forgot Password",
   "userNotFound": "User not found",
-  "userUpdatedSuccessfully": "information updated",
+  "userUpdatedSuccessfully": "Information updated",
   "emailVerifiedMessage": "Email verified successfully",
   "invalidOrExpiredToken": "Invalid or expired token.",
   "pleaseProvideEmail": "Please provide an email.",
   "userNotFoundOrAlreadyVerified": "User not found or already verified.",
   "cannotSendEmail": "Cannot send email.",
-  "verificationEmailResent": "Verification email resent."
+  "verificationEmailResent": "Verification email resent.",
+  "emailAddressUpdated": "Email address updated",
+  "invalidToken": "Invalid token",
+  "expiredToken": "Expired token"
 }
