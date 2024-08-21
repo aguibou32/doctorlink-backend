@@ -39,6 +39,9 @@ const tempUserSchema = new mongoose.Schema({
   verificationToken: {
     type: String,
   },
+  lastVerificationEmailSentAt: {
+    type: Date,
+  },
   createdAt: {
     type: Date,
     default: Date.now,

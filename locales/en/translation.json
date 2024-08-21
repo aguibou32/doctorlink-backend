@@ -15,5 +15,6 @@
   "verificationEmailResent": "Verification email resent.",
   "emailAddressUpdated": "Email address updated",
   "invalidToken": "Invalid token",
-  "expiredToken": "Expired token"
+  "expiredToken": "Expired token",
+  "verificationEmailCooldown": "Please wait a minute before requesting another verification email."
 }
