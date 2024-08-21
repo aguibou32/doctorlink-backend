@@ -61,4 +61,4 @@ tempUserSchema.methods.matchPassword = async function (enteredPassword) {
 }
 
 const TempUser = mongoose.model("TempUser", tempUserSchema)
-export default TempUser;
+export default TempUser

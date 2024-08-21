@@ -80,8 +80,6 @@ const registerUser = asyncHandler(async (req, res) => {
   }
 })
 
-
-
 // @desc Verify email
 // @route POST api/users/verify-email
 // @access Public
@@ -277,11 +275,11 @@ const resendEmailChangeVerification = asyncHandler(async (req, res) => {
   }
 
   // Check if last email was sent within the last minute
-  const oneMinuteAgo = Date.now() - 60 * 1000
-  if (user.lastVerificationEmailSentAt && user.lastVerificationEmailSentAt > oneMinuteAgo) {
-    res.status(429)
-    throw new Error(t('verificationEmailCooldown'))
-  }
+  // const oneMinuteAgo = Date.now() - 60 * 1000
+  // if (user.lastVerificationEmailSentAt && user.lastVerificationEmailSentAt > oneMinuteAgo) {
+  //   res.status(429)
+  //   throw new Error(t('verificationEmailCooldown'))
+  // }
 
   // Generate and save new verification token
   const newVerificationToken = await generateAndSaveToken(user)
@@ -291,7 +289,7 @@ const resendEmailChangeVerification = asyncHandler(async (req, res) => {
   await user.save()
 
   // Resend verification email
-  await sendVerificationTokenEmail(user.email, user.name, newVerificationToken, t)
+  await sendVerificationTokenEmail(newEmail, user.name, newVerificationToken, t)
 
   res.status(200).json({ message: t('verificationEmailResent') })
 })
