@@ -49,8 +49,7 @@ const registerUser = asyncHandler(async (req, res) => {
 
   const userExists = await TempUser.findOne({ email })
   if (userExists) {
-    res.status(400)
-    throw new Error(t('emailInUse'))
+    await userExists.deleteOne()
   }
 
   const salt = await bcrypt.genSalt(10)
@@ -63,14 +62,25 @@ const registerUser = asyncHandler(async (req, res) => {
     email,
     phone,
     dob,
-    password: hashedPassword
+    password: hashedPassword,
   })
 
   const verificationToken = await generateAndSaveToken(tempUser)
-  await sendVerificationTokenEmail(tempUser.email, tempUser.name, verificationToken, t)
+  // when we call generateAndSaveToken, we are already saving the user, that's why we not saving the user
+  // again in the try catch block
 
-  res.status(201).json({ "email": tempUser.email })
+  try {
+    await sendVerificationTokenEmail(tempUser.email, tempUser.name, verificationToken, t)
+    tempUser.lastVerificationEmailSentAt = Date.now()
+    await tempUser.save()
+    res.status(201).json({ email: tempUser.email })
+  } catch (error) {
+    res.status(500)
+    throw new Error(t('cannotSendEmail'))
+  }
 })
+
+
 
 // @desc Verify email
 // @route POST api/users/verify-email
@@ -119,8 +129,19 @@ const resendVerificationEmail = asyncHandler(async (req, res) => {
     throw new Error(t('userNotFoundOrAlreadyVerified'))
   }
 
+  // Check if last email was sent within the last minute
+  const oneMinuteAgo = Date.now() - 60 * 1000
+  if (tempUser.lastVerificationEmailSentAt && tempUser.lastVerificationEmailSentAt > oneMinuteAgo) {
+    res.status(429)
+    throw new Error(t('verificationEmailCooldown'))
+  }
+
   // Generate and save new verification token
   const newVerificationToken = await generateAndSaveToken(tempUser)
+
+  // Update the last sent timestamp
+  tempUser.lastVerificationEmailSentAt = Date.now()
+  await tempUser.save()
 
   // Resend verification email
   await sendVerificationTokenEmail(tempUser.email, tempUser.name, newVerificationToken, t)
@@ -134,7 +155,7 @@ const resendVerificationEmail = asyncHandler(async (req, res) => {
 const loginUser = asyncHandler(async (req, res) => {
   const { t } = req
   const { email, password } = req.body
-  
+
   const user = await User.findOne({ email: email })
 
   if (user && (await user.matchPassword(password))) {
@@ -228,10 +249,17 @@ const sendEmailChangeVerification = asyncHandler(async (req, res) => {
 
   const verificationToken = await generateAndSaveToken(user)
 
-  // Send verification email
-  await sendVerificationTokenEmail(newEmail, user.name, verificationToken, t)
+  // Try to send verification email
+  try {
+    await sendVerificationTokenEmail(newEmail, user.name, verificationToken, t)
+    user.lastVerificationEmailSentAt = Date.now()
+    await user.save()
 
-  res.status(201).json({ email: newEmail })
+    res.status(201).json({ email: newEmail })
+  } catch (error) {
+    res.status(500)
+    throw new Error(t('cannotSendEmail'))
+  }
 })
 
 
@@ -248,10 +276,23 @@ const resendEmailChangeVerification = asyncHandler(async (req, res) => {
     throw new Error(t('pleaseProvideEmail'))
   }
 
+  // Check if last email was sent within the last minute
+  const oneMinuteAgo = Date.now() - 60 * 1000
+  if (user.lastVerificationEmailSentAt && user.lastVerificationEmailSentAt > oneMinuteAgo) {
+    res.status(429)
+    throw new Error(t('verificationEmailCooldown'))
+  }
+
+  // Generate and save new verification token
   const newVerificationToken = await generateAndSaveToken(user)
 
+  // Update the last sent timestamp
+  user.lastVerificationEmailSentAt = Date.now()
+  await user.save()
+
   // Resend verification email
-  await sendVerificationTokenEmail(newEmail, user.name, newVerificationToken, t)
+  await sendVerificationTokenEmail(user.email, user.name, newVerificationToken, t)
+
   res.status(200).json({ message: t('verificationEmailResent') })
 })
 
@@ -277,10 +318,6 @@ const verifyEmailChange = asyncHandler(async (req, res) => {
     email: user.email
   })
 })
-
-
-
-
 
 export {
   registerUser,
