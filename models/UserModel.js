@@ -25,7 +25,8 @@ const userSchema = new mongoose.Schema({
   },
   phone: {
     type: String,
-    required: true
+    required: true,
+    unique: true
   },
   birthPlace: {
     type: String,
@@ -50,10 +51,6 @@ const userSchema = new mongoose.Schema({
     type: String,
     required: true
   },
-  address: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'UserAddressModel' // Use the model name as a string
-  },
   verificationToken: {
     type: String,
   },
@@ -67,7 +64,7 @@ const userSchema = new mongoose.Schema({
   { timestamps: true }
 )
 
-userSchema.methods.generateVerificationToken = function() {
+userSchema.methods.generateVerificationToken = function () {
   const randomDigits = () => Math.floor(100000 + Math.random() * 900000).toString()
   this.verificationToken = randomDigits()
   this.verificationExpiry = Date.now() + 30 * 60 * 1000

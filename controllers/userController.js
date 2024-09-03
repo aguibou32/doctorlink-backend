@@ -5,13 +5,17 @@ import bcrypt from 'bcrypt'
 import generateToken from "../utils/generateToken.js"
 import { sendVerificationEmail } from "../utils/sendEmail.js"
 
-// Helper function to generate a verification token for both 
-// TempUser or regular User (DRY principle)
-const generateAndSaveToken = async (user) => {
-  const verificationToken = user.generateVerificationToken() // Corrected to method call
-  await user.save()
+const generateAndSaveToken = async (user, userType) => {
+  const verificationToken = user.generateVerificationToken()
+
+  if (userType === 'tempUser') {
+    await user.save() 
+  } else if (userType === 'user') {
+    await user.save({ timestamps: false }) // Not changing this to avoid side effects
+  }
   return verificationToken
 }
+
 
 // Helper function to send verification email to both 
 // TempUser or regular User (DRY principle)
@@ -29,6 +33,58 @@ const verifyToken = (user, token, t) => {
   if (user.verificationToken !== token) throw new Error(t('invalidToken'))
   if (user.verificationExpiry && Date.now() > user.verificationExpiry) throw new Error(t('expiredToken'))
 }
+
+// @desc Check if email is in use
+// @route POST api/users/check-email-in-use
+// @access Public
+const checkEmailInUse = asyncHandler (async (req, res) => {
+
+  const { t } = req
+  const { email } = req.body
+
+  if(!email) {
+    res.status(400)
+    throw new Error(t('emailRequired'))
+  }
+
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+
+  if (!emailRegex.test(email)) {
+    res.status(400);
+    throw new Error(t('invalidEmailFormat'))
+  }
+
+  const emailInUse = await User.findOne({ email })
+
+  if(emailInUse){
+    res.status(400)
+    throw new Error(t('emailInUse'))
+  }else {
+    res.status(200).json({ message: t('emailAvailable') })
+  }
+})
+
+// @desc Check if phone number is in use
+// @route POST api/users/check-phone-in-use
+// @access Public
+const checkPhoneInUse = asyncHandler( async (req, res) => {
+  const { t } = req
+  const { phone } = req.body
+
+  if(!phone){
+    res.status(400)
+    throw new Error(t('phoneRequired'))
+  }
+  
+  const phoneInUse = await User.findOne( { phone })
+  
+  if(phoneInUse){
+    res.status(400)
+    throw new Error('phoneInUse')
+  }else{
+    res.json(200).json({ message: t('phoneAvailable') })
+  }
+})
 
 // @desc Register user & get token
 // @route POST api/users/
@@ -65,7 +121,7 @@ const registerUser = asyncHandler(async (req, res) => {
     password: hashedPassword,
   })
 
-  const verificationToken = await generateAndSaveToken(tempUser)
+  const verificationToken = await generateAndSaveToken(tempUser, 'tempUser')
   // when we call generateAndSaveToken, we are already saving the user, that's why we not saving the user
   // again in the try catch block
 
@@ -106,7 +162,18 @@ const verifyEmail = asyncHandler(async (req, res) => {
 
   // Generate token for user session (to log in the user)
   generateToken(res, user._id)
-  res.status(200).json(user)
+
+  const userResponse = { // We sending back a a new user, excluding the pwd
+    name: user.name,
+    surname: user.surname,
+    gender: user.gender,
+    dob: user.dob,
+    email: user.email,
+    phone: user.phone,
+    isEmailVerified: true,
+  }
+
+  res.status(200).json(userResponse)
 })
 
 // @desc Resend verification email
@@ -135,7 +202,7 @@ const resendVerificationEmail = asyncHandler(async (req, res) => {
   }
 
   // Generate and save new verification token
-  const newVerificationToken = await generateAndSaveToken(tempUser)
+  const newVerificationToken = await generateAndSaveToken(tempUser, 'tempUser')
 
   // Update the last sent timestamp
   tempUser.lastVerificationEmailSentAt = Date.now()
@@ -226,6 +293,8 @@ const updateUserProfile = asyncHandler(async (req, res) => {
         dob: updatedUser.dob,
         email: updatedUser.email,
         phone: updatedUser.phone,
+        isEmailVerified: updatedUser.isEmailVerified,
+        isPhoneNumberVerified: updatedUser.isPhoneNumberVerified,
         birthPlace: updatedUser.birthPlace,
         birthCountry: updatedUser.birthCountry
       }
@@ -245,8 +314,18 @@ const sendEmailChangeVerification = asyncHandler(async (req, res) => {
   const user = await User.findById(req.user.id)
   const { newEmail } = req.body
 
-  const verificationToken = await generateAndSaveToken(user)
+  if (user.email === newEmail) {
+    throw new Error(t("newEmailCurrentEmail"))
+  }
 
+  // Check if last email was sent within the last minute
+  const oneMinuteAgo = Date.now() - 60 * 1000
+  if (user.lastVerificationEmailSentAt && user.lastVerificationEmailSentAt > oneMinuteAgo) {
+    res.status(429)
+    throw new Error(t('verificationEmailCooldown'))
+  }
+
+  const verificationToken = await generateAndSaveToken(user, 'user')
   // Try to send verification email
   try {
     await sendVerificationTokenEmail(newEmail, user.name, verificationToken, t)
@@ -269,20 +348,26 @@ const resendEmailChangeVerification = asyncHandler(async (req, res) => {
   const user = await User.findById(req.user.id)
   const { newEmail } = req.body
 
+
+
   if (!newEmail) {
     res.status(400)
     throw new Error(t('pleaseProvideEmail'))
   }
 
+  if (user.email === newEmail) {
+    throw new Error(t("newEmailCurrentEmail"))
+  }
+
   // Check if last email was sent within the last minute
-  // const oneMinuteAgo = Date.now() - 60 * 1000
-  // if (user.lastVerificationEmailSentAt && user.lastVerificationEmailSentAt > oneMinuteAgo) {
-  //   res.status(429)
-  //   throw new Error(t('verificationEmailCooldown'))
-  // }
+  const oneMinuteAgo = Date.now() - 60 * 1000
+  if (user.lastVerificationEmailSentAt && user.lastVerificationEmailSentAt > oneMinuteAgo) {
+    res.status(429)
+    throw new Error(t('verificationEmailCooldown'))
+  }
 
   // Generate and save new verification token
-  const newVerificationToken = await generateAndSaveToken(user)
+  const newVerificationToken = await generateAndSaveToken(user, 'user')
 
   // Update the last sent timestamp
   user.lastVerificationEmailSentAt = Date.now()
@@ -298,9 +383,12 @@ const resendEmailChangeVerification = asyncHandler(async (req, res) => {
 // @route POST api/users/verifyEmailChange
 // @access Private
 const verifyEmailChange = asyncHandler(async (req, res) => {
+
+  // console.log(req.body)
+
   const { t } = req
   const { newEmail, token } = req.body
-
+  
   const user = await User.findById(req.user.id)
   verifyToken(user, token, t)
 
@@ -311,6 +399,8 @@ const verifyEmailChange = asyncHandler(async (req, res) => {
 
   await user.save()
 
+  // console.log(user)
+
   res.status(200).json({
     message: t("emailAddressUpdated"),
     email: user.email
@@ -318,6 +408,8 @@ const verifyEmailChange = asyncHandler(async (req, res) => {
 })
 
 export {
+  checkEmailInUse,
+  checkPhoneInUse,
   registerUser,
   verifyEmail,
   resendVerificationEmail,

@@ -3,6 +3,9 @@
   "termsAndConditionsError": "You have to accept the terms and conditions",
   "includeAllFields": "Please include all fields!",
   "emailInUse": "Email address already in use!",
+  "emailAvailable": "Email address available!",
+  "phoneInUse": "Phone number already in use!",
+  "phoneAvailable": "Phone number available!",
   "email_verification": "Please verify your email by clicking the link: {{verificationUrl}}",
   "forgot_password": "Forgot Password",
   "userNotFound": "User not found",
@@ -16,5 +19,9 @@
   "emailAddressUpdated": "Email address updated",
   "invalidToken": "Invalid token",
   "expiredToken": "Expired token",
-  "verificationEmailCooldown": "Please wait a minute before requesting another verification email."
+  "verificationEmailCooldown": "Please wait a minute before requesting another verification email.",
+  "newEmailCurrentEmail": "New email cannot be your current email",
+  "emailRequired": "The email address is required",
+  "invalidEmailFormat": "Invalid email format", 
+  "phoneRequired": "The phone number is required"
 }

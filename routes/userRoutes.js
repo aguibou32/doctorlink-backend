@@ -3,6 +3,8 @@ const router = express.Router()
 
 import { protect, admin } from '../middleware/authMiddleware.js'
 import {
+  checkEmailInUse,
+  checkPhoneInUse,
   registerUser,
   verifyEmail,
   resendVerificationEmail,
@@ -18,6 +20,8 @@ import {
 import checkObjectId from '../middleware/checkObjectId.js'
 
 router.route('/').post(registerUser)
+router.route('/check-email-in-use').post(checkEmailInUse)
+router.route('/check-phone-in-use').post(checkPhoneInUse)
 router.route('/verify-email').post(verifyEmail)
 router.route('/resend-email-verification').post(resendVerificationEmail)
 router.route('/login').post(loginUser)
