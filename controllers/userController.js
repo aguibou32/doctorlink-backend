@@ -4,18 +4,13 @@ import asyncHandler from "../middleware/asyncHandler.js"
 import bcrypt from 'bcrypt'
 import generateToken from "../utils/generateToken.js"
 import { sendVerificationEmail } from "../utils/sendEmail.js"
+import registerSchema from "../schemas/registerSchema.js"
 
-const generateAndSaveToken = async (user, userType) => {
+const generateAndSaveToken = async user => {
   const verificationToken = user.generateVerificationToken()
-
-  if (userType === 'tempUser') {
     await user.save() 
-  } else if (userType === 'user') {
-    await user.save({ timestamps: false }) // Not changing this to avoid side effects
-  }
-  return verificationToken
+    return verificationToken
 }
-
 
 // Helper function to send verification email to both 
 // TempUser or regular User (DRY principle)
@@ -80,9 +75,9 @@ const checkPhoneInUse = asyncHandler( async (req, res) => {
   
   if(phoneInUse){
     res.status(400)
-    throw new Error('phoneInUse')
+    throw new Error(t('phoneInUse'))
   }else{
-    res.json(200).json({ message: t('phoneAvailable') })
+    res.status(200).json({ message: t('phoneAvailable') })
   }
 })
 
@@ -93,14 +88,12 @@ const registerUser = asyncHandler(async (req, res) => {
   const { t } = req
   const { name, surname, gender, dob, email, phone, password, terms } = req.body
 
-  if (!terms) {
+  try {
+    await registerSchema.validate({email}, { abortEarly: false })
+  } catch (error) {
+    console.log(error)
     res.status(400)
-    throw new Error(t('termsAndConditionsError'))
-  }
-
-  if (!name || !surname || !gender || !email || !phone || !dob || !password) {
-    res.status(400)
-    throw new Error(t('includeAllFields'))
+    throw new Error(error.errors ? error.errors.join(', ') : 'Validation failed')
   }
 
   const userExists = await TempUser.findOne({ email })
@@ -121,7 +114,7 @@ const registerUser = asyncHandler(async (req, res) => {
     password: hashedPassword,
   })
 
-  const verificationToken = await generateAndSaveToken(tempUser, 'tempUser')
+  const verificationToken = await generateAndSaveToken(tempUser)
   // when we call generateAndSaveToken, we are already saving the user, that's why we not saving the user
   // again in the try catch block
 
@@ -202,7 +195,7 @@ const resendVerificationEmail = asyncHandler(async (req, res) => {
   }
 
   // Generate and save new verification token
-  const newVerificationToken = await generateAndSaveToken(tempUser, 'tempUser')
+  const newVerificationToken = await generateAndSaveToken(tempUser)
 
   // Update the last sent timestamp
   tempUser.lastVerificationEmailSentAt = Date.now()
@@ -325,7 +318,7 @@ const sendEmailChangeVerification = asyncHandler(async (req, res) => {
     throw new Error(t('verificationEmailCooldown'))
   }
 
-  const verificationToken = await generateAndSaveToken(user, 'user')
+  const verificationToken = await generateAndSaveToken(user)
   // Try to send verification email
   try {
     await sendVerificationTokenEmail(newEmail, user.name, verificationToken, t)
@@ -367,7 +360,7 @@ const resendEmailChangeVerification = asyncHandler(async (req, res) => {
   }
 
   // Generate and save new verification token
-  const newVerificationToken = await generateAndSaveToken(user, 'user')
+  const newVerificationToken = await generateAndSaveToken(user)
 
   // Update the last sent timestamp
   user.lastVerificationEmailSentAt = Date.now()

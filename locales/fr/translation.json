@@ -23,5 +23,20 @@
   "newEmailCurrentEmail": "Le nouvel e-mail ne peut pas être votre e-mail actuel",
   "emailRequired": "L'adresse e-mail est obligatoire",
   "invalidEmailFormat": "Format d'adresse e-mail invalide",
-  "phoneRequired": "Le numéro de téléphone est obligatoire"
+  "emailInvalid": "Adresse e-mail invalide.",
+  "genderRequired": "Le genre est requis.",
+  "nameRequired": "Le nom est requis.",
+  "nameInvalid": "Le nom ne doit contenir que des lettres et des espaces.",
+  "surnameRequired": "Le prénom est requis.",
+  "surnameInvalid": "Le prénom ne doit contenir que des lettres et des espaces.",
+  "dobRequired": "La date de naissance est requise.",
+  "dobInvalid": "Format de date de naissance invalide.",
+  "dobMax": "La date de naissance doit être dans le passé et après l'année 1900.",
+  "phoneRequired": "Le numéro de téléphone est requis.",
+  "invalidPhoneNumber": "Numéro de téléphone invalide.",
+  "passwordRequired": "Le mot de passe est requis.",
+  "passwordPattern": "Le mot de passe doit contenir au moins une lettre majuscule, une lettre minuscule et un chiffre.",
+  "passwordsMustMatch": "Les mots de passe doivent correspondre.",
+  "confirmPasswordRequired": "La confirmation du mot de passe est requise.",
+  "termsMustBeAccepted": "Vous devez accepter les termes et conditions."
 }

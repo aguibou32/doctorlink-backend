@@ -23,5 +23,20 @@
   "newEmailCurrentEmail": "New email cannot be your current email",
   "emailRequired": "The email address is required",
   "invalidEmailFormat": "Invalid email format", 
-  "phoneRequired": "The phone number is required"
+  "emailInvalid": "Invalid email address.",
+  "genderRequired": "Gender is required.",
+  "nameRequired": "Name is required.",
+  "nameInvalid": "Name must only contain letters and spaces.",
+  "surnameRequired": "Surname is required.",
+  "surnameInvalid": "Surname must only contain letters and spaces.",
+  "dobRequired": "Date of birth is required.",
+  "dobInvalid": "Invalid date of birth format.",
+  "dobMax": "Date of birth must be in the past and after the year 1900.",
+  "phoneRequired": "Phone number is required.",
+  "invalidPhoneNumber": "Invalid phone number.",
+  "passwordRequired": "Password is required.",
+  "passwordPattern": "Password must contain at least one uppercase letter, one lowercase letter, and one number.",
+  "passwordsMustMatch": "Passwords must match.",
+  "confirmPasswordRequired": "Confirm password is required.",
+  "termsMustBeAccepted": "You must accept the terms and conditions."
 }
