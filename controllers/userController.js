@@ -89,11 +89,16 @@ const registerUser = asyncHandler(async (req, res) => {
   const { name, surname, gender, dob, email, phone, password, terms } = req.body
 
   try {
-    await registerSchema.validate({email}, { abortEarly: false })
+    await registerSchema.validate(req.body, { abortEarly: false })
   } catch (error) {
-    console.log(error)
     res.status(400)
     throw new Error(error.errors ? error.errors.join(', ') : 'Validation failed')
+  }
+
+  const phoneInUse = await User.findOne( { phone})
+  if(phoneInUse){
+    res.status(400)
+    throw new Error(t('phoneInUse'))
   }
 
   const userExists = await TempUser.findOne({ email })

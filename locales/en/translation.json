@@ -35,7 +35,7 @@
   "phoneRequired": "Phone number is required.",
   "invalidPhoneNumber": "Invalid phone number.",
   "passwordRequired": "Password is required.",
-  "passwordPattern": "Password must contain at least one uppercase letter, one lowercase letter, and one number.",
+  "passwordPattern": "Password must be at least 8 characters long and contain at least one uppercase letter, one lowercase letter, one number, and one special character.",
   "passwordsMustMatch": "Passwords must match.",
   "confirmPasswordRequired": "Confirm password is required.",
   "termsMustBeAccepted": "You must accept the terms and conditions."

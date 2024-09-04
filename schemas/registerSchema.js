@@ -43,14 +43,17 @@ const registerSchema = yup.object().shape({
   // Password validation
   password: yup.string()
     .required(() => i18next.t('passwordRequired'))
-    .matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[a-zA-Z\d]{5,}$/, () => i18next.t('passwordPattern')),
-  confirmPassword: yup.string()
-    .oneOf([yup.ref('password'), null], () => i18next.t('passwordsMustMatch'))
-    .required(() => i18next.t('confirmPasswordRequired')),
+    .matches(
+        /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/,
+        () => i18next.t('passwordPattern')
+    ),
+  // confirmPassword: yup.string()
+  //   .oneOf([yup.ref('password'), null], () => i18next.t('passwordsMustMatch'))
+  //   .required(() => i18next.t('confirmPasswordRequired')),
 
   // Terms acceptance
   terms: yup.bool()
     .oneOf([true], () => i18next.t('termsMustBeAccepted'))
-});
+})
 
 export default registerSchema
