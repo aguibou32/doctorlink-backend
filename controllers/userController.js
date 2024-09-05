@@ -217,7 +217,7 @@ const resendVerificationEmail = asyncHandler(async (req, res) => {
 // @access Public
 const loginUser = asyncHandler(async (req, res) => {
   const { t } = req
-  const { email, password } = req.body
+  const { email, password, rememberMe } = req.body
 
   const user = await User.findOne({ email: email })
 
