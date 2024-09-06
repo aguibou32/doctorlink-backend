@@ -38,5 +38,6 @@
   "passwordPattern": "Password must be at least 8 characters long and contain at least one uppercase letter, one lowercase letter, one number, and one special character.",
   "passwordsMustMatch": "Passwords must match.",
   "confirmPasswordRequired": "Confirm password is required.",
-  "termsMustBeAccepted": "You must accept the terms and conditions."
+  "termsMustBeAccepted": "You must accept the terms and conditions.",
+  "passwordMinLength": "Password must be at least 8 characters"
 }

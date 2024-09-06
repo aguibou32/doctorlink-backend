@@ -43,10 +43,7 @@ const registerSchema = yup.object().shape({
   // Password validation
   password: yup.string()
     .required(() => i18next.t('passwordRequired'))
-    .matches(
-        /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/,
-        () => i18next.t('passwordPattern')
-    ),
+    .min(8, () => i18next.t('passwordMinLength')), 
   // confirmPassword: yup.string()
   //   .oneOf([yup.ref('password'), null], () => i18next.t('passwordsMustMatch'))
   //   .required(() => i18next.t('confirmPasswordRequired')),

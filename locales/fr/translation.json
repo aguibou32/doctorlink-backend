@@ -38,5 +38,6 @@
   "passwordPattern": "Le mot de passe doit contenir au moins 8 caractères, dont une lettre majuscule, une lettre minuscule, un chiffre et un caractère spécial.",
   "passwordsMustMatch": "Les mots de passe doivent correspondre.",
   "confirmPasswordRequired": "La confirmation du mot de passe est requise.",
-  "termsMustBeAccepted": "Vous devez accepter les termes et conditions."
+  "termsMustBeAccepted": "Vous devez accepter les termes et conditions.",
+  "passwordMinLength": "Le mot de passe doit comporter au moins 8 caractères"
 }
