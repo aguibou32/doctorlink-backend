@@ -39,5 +39,14 @@
   "passwordsMustMatch": "Les mots de passe doivent correspondre.",
   "confirmPasswordRequired": "La confirmation du mot de passe est requise.",
   "termsMustBeAccepted": "Vous devez accepter les termes et conditions.",
-  "passwordMinLength": "Le mot de passe doit comporter au moins 8 caractères"
+  "passwordMinLength": "Le mot de passe doit comporter au moins 8 caractères",
+  "invalidEmail": "Adresse e-mail incorrecte. Veuillez réessayer.",
+  "emailNotAssociatedWithAUser": "Cette addresse e-mail n'est pas associée à un utilisateur actuel. Veuillez réessayer.",
+  "passwordResetEmailSent": "Un lien de réinitialisation de mot de passe a été envoyé à votre adresse e-mail. Veuillez vérifier votre boîte de réception et suivre les instructions pour réinitialiser votre mot de passe.",
+  "greeting": "Salut,",
+  "resetInstruction": "Réinitialisez votre mot de passe.",
+  "copyLinkInstruction": "Ou copiez le lien et collez-le dans votre navigateur.",
+  "expirationNotice": "Ce lien de réinitialisation de mot de passe expirera dans 30 minutes.",
+  "ignoreInstruction": "Si vous n'êtes pas à l'origine de cette demande, veuillez ignorer cet e-mail.",
+  "thankYou": "Merci d'utiliser notre service !"
 }

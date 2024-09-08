@@ -1,6 +1,6 @@
-import * as yup from "yup";
-import i18next from "i18next";
-import moment from "moment";
+import * as yup from "yup" 
+import i18next from "i18next" 
+import moment from "moment" 
 import { isValidPhoneNumber } from 'libphonenumber-js'
 
 const registerSchema = yup.object().shape({
@@ -29,9 +29,9 @@ const registerSchema = yup.object().shape({
       'is-reasonable-age',
       () => i18next.t('dobMax'),
       (value) => {
-        if (!value) return false;
-        const date = moment(value, 'DD/MM/YYYY');
-        return date.isValid() && date.isBefore(moment()) && date.year() > 1900;
+        if (!value) return false 
+        const date = moment(value, 'DD/MM/YYYY') 
+        return date.isValid() && date.isBefore(moment()) && date.year() > 1900 
       }
     ),
 

@@ -22,7 +22,7 @@
   "verificationEmailCooldown": "Please wait a minute before requesting another verification email.",
   "newEmailCurrentEmail": "New email cannot be your current email",
   "emailRequired": "The email address is required",
-  "invalidEmailFormat": "Invalid email format", 
+  "invalidEmailFormat": "Invalid email format",
   "emailInvalid": "Invalid email address.",
   "genderRequired": "Gender is required.",
   "nameRequired": "Name is required.",
@@ -39,5 +39,14 @@
   "passwordsMustMatch": "Passwords must match.",
   "confirmPasswordRequired": "Confirm password is required.",
   "termsMustBeAccepted": "You must accept the terms and conditions.",
-  "passwordMinLength": "Password must be at least 8 characters"
+  "passwordMinLength": "Password must be at least 8 characters",
+  "invalidEmail": "Incorrect email address. Please try again.",
+  "emailNotAssociatedWithAUser": "This user is not associated with a current user. Please try again",
+  "passwordResetEmailSent": "A password reset link has been sent to your email. Please check your inbox and follow the instructions to reset your password.",
+  "greeting": "Hey,",
+  "resetInstruction": "Reset your password.",
+  "copyLinkInstruction": "Or copy the link and paste it in your browser.",
+  "expirationNotice": "This password reset link will expire in 30 minutes.",
+  "ignoreInstruction": "If you did not request this password reset, please ignore this email.",
+  "thankYou": "Thank you for using our service!"
 }

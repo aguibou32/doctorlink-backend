@@ -3,13 +3,16 @@ import TempUser from "../models/TempUserModel.js"
 import asyncHandler from "../middleware/asyncHandler.js"
 import bcrypt from 'bcrypt'
 import generateToken from "../utils/generateToken.js"
-import { sendVerificationEmail } from "../utils/sendEmail.js"
+import {  sendVerificationEmail, 
+          sendForgotPasswordResetLink } from "../utils/sendEmail.js"
+
 import registerSchema from "../schemas/registerSchema.js"
+import forgotPasswordSchema from "../schemas/forgotPasswordSchema.js"
 
 const generateAndSaveToken = async user => {
   const verificationToken = user.generateVerificationToken()
-    await user.save() 
-    return verificationToken
+  await user.save()
+  return verificationToken
 }
 
 // Helper function to send verification email to both 
@@ -32,12 +35,12 @@ const verifyToken = (user, token, t) => {
 // @desc Check if email is in use
 // @route POST api/users/check-email-in-use
 // @access Public
-const checkEmailInUse = asyncHandler (async (req, res) => {
+const checkEmailInUse = asyncHandler(async (req, res) => {
 
   const { t } = req
   const { email } = req.body
 
-  if(!email) {
+  if (!email) {
     res.status(400)
     throw new Error(t('emailRequired'))
   }
@@ -51,10 +54,10 @@ const checkEmailInUse = asyncHandler (async (req, res) => {
 
   const emailInUse = await User.findOne({ email })
 
-  if(emailInUse){
+  if (emailInUse) {
     res.status(400)
     throw new Error(t('emailInUse'))
-  }else {
+  } else {
     res.status(200).json({ message: t('emailAvailable') })
   }
 })
@@ -62,21 +65,21 @@ const checkEmailInUse = asyncHandler (async (req, res) => {
 // @desc Check if phone number is in use
 // @route POST api/users/check-phone-in-use
 // @access Public
-const checkPhoneInUse = asyncHandler( async (req, res) => {
+const checkPhoneInUse = asyncHandler(async (req, res) => {
   const { t } = req
   const { phone } = req.body
 
-  if(!phone){
+  if (!phone) {
     res.status(400)
     throw new Error(t('phoneRequired'))
   }
-  
-  const phoneInUse = await User.findOne( { phone })
-  
-  if(phoneInUse){
+
+  const phoneInUse = await User.findOne({ phone })
+
+  if (phoneInUse) {
     res.status(400)
     throw new Error(t('phoneInUse'))
-  }else{
+  } else {
     res.status(200).json({ message: t('phoneAvailable') })
   }
 })
@@ -95,8 +98,8 @@ const registerUser = asyncHandler(async (req, res) => {
     throw new Error(error.errors ? error.errors.join(', ') : 'Validation failed')
   }
 
-  const phoneInUse = await User.findOne( { phone})
-  if(phoneInUse){
+  const phoneInUse = await User.findOne({ phone })
+  if (phoneInUse) {
     res.status(400)
     throw new Error(t('phoneInUse'))
   }
@@ -386,7 +389,7 @@ const verifyEmailChange = asyncHandler(async (req, res) => {
 
   const { t } = req
   const { newEmail, token } = req.body
-  
+
   const user = await User.findById(req.user.id)
   verifyToken(user, token, t)
 
@@ -405,6 +408,53 @@ const verifyEmailChange = asyncHandler(async (req, res) => {
   })
 })
 
+// @desc Forgot password 
+// @route POST api/users/forgot-password
+// access Public
+const forgotPassword = asyncHandler(async (req, res) => {
+
+  const { t } = req
+
+  const { email } = req.body
+
+  console.log(email)
+
+  try {
+    await forgotPasswordSchema.validate({email}, { abortEarly: false })
+  } catch (error) {
+    res.status(400)
+    throw new Error(error.errors ? error.errors.join(', ') : 'Validation failed')
+  }
+
+  const user = await User.findOne({ email })
+
+  if (!user) {
+    res.status(400)
+    throw new Error(t('emailNotAssociatedWithAUser'))
+  }
+
+  const resetToken = user.generateResetPasswordToken()
+  await user.save()
+
+  const resetLink = `${process.env.FRONTEND_URL}/reset-password/${resetToken}`
+  try {
+    await sendForgotPasswordResetLink(user.email, user.name, resetLink, t('greeting'), t('resetInstruction',
+      t('copyLinkInstruction'),
+      t('expirationNotice'),
+      t('ignoreInstruction'),
+      t('thankYou')
+    )
+  )
+
+    res.status(200).json({message: t('passwordResetEmailSent')})
+  } catch (error) {
+    res.status(500)
+    throw new Error('cannotSendEmail')
+  }
+  
+
+})
+
 export {
   checkEmailInUse,
   checkPhoneInUse,
@@ -416,5 +466,6 @@ export {
   updateUserProfile,
   sendEmailChangeVerification,
   resendEmailChangeVerification,
-  verifyEmailChange
+  verifyEmailChange,
+  forgotPassword
 }

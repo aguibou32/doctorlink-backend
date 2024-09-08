@@ -1,5 +1,6 @@
 import mongoose from "mongoose"
 import bcrypt from 'bcrypt'
+import crypto from 'crypto'
 
 const userSchema = new mongoose.Schema({
   name: {
@@ -60,6 +61,15 @@ const userSchema = new mongoose.Schema({
   lastVerificationEmailSentAt: {
     type: Date,
   },
+  resetPasswordToken: {
+    type: String,
+  },
+  resetPasswordExpiry: {
+    type: Date,
+  },
+  lastResetPasswordEmailSentAt: {
+    type: Date
+  }
 },
   { timestamps: true }
 )
@@ -67,9 +77,17 @@ const userSchema = new mongoose.Schema({
 userSchema.methods.generateVerificationToken = function () {
   const randomDigits = () => Math.floor(100000 + Math.random() * 900000).toString()
   this.verificationToken = randomDigits()
-  this.verificationExpiry = Date.now() + 30 * 60 * 1000
+  this.verificationExpiry = Date.now() + 30 * 60 * 1000 // 30 min
   return this.verificationToken
 }
+
+userSchema.methods.generateResetPasswordToken = function () {
+  const resetToken = crypto.randomBytes(32).toString('hex')
+  this.resetPasswordToken = crypto.createHash('sha256').update(resetToken).digest('hex')
+  this.resetPasswordExpiry = Date.now() + 30 * 60 * 1000 // 30 min
+  return resetToken
+}
+
 
 userSchema.methods.matchPassword = async function (enteredPassword) {
   return await bcrypt.compare(enteredPassword, this.password)
