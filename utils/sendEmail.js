@@ -55,7 +55,7 @@ export const sendVerificationEmail = async (toEmail, name, verificationCode) => 
 
 
 
-export const sendForgotPasswordResetLink = async (toEmail, name, resetLink, copyLinkInstruction, expirationNotice, ignoreInstruction, thankYou) => {
+export const sendForgotPasswordResetLink = async (toEmail, name, resetLink, greeting, resetInstruction, resetPassword ,copyLinkInstruction, expirationNotice, ignoreInstruction, thankYou) => {
   try {
     
     const templatePath = path.join(__dirname, 'forgotPassword', 'forgotPassword.html')
@@ -71,10 +71,15 @@ export const sendForgotPasswordResetLink = async (toEmail, name, resetLink, copy
 
     // Replace the placeholder with the actual verification code
     htmlTemplate = htmlTemplate.replace('{{resetLink}}', resetLink)
+    .replace('{{greeting}}', greeting)
+    .replace('{{resetPassword}}', resetPassword)
+    .replace('{{resetInstruction}}', resetInstruction)
+    .replace('{{resetInstruction}}', resetInstruction)
     .replace('{{copyLinkInstruction}}', copyLinkInstruction)
     .replace('{{expirationNotice}}', expirationNotice)
     .replace('{{ignoreInstruction}}', ignoreInstruction)
     .replace('{{thankYou}}', thankYou)
+    .replace('{{name}}', name)
 
     // Send email
       await transporter.sendMail({

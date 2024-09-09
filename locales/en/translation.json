@@ -44,9 +44,10 @@
   "emailNotAssociatedWithAUser": "This user is not associated with a current user. Please try again",
   "passwordResetEmailSent": "A password reset link has been sent to your email. Please check your inbox and follow the instructions to reset your password.",
   "greeting": "Hey,",
-  "resetInstruction": "Reset your password.",
-  "copyLinkInstruction": "Or copy the link and paste it in your browser.",
-  "expirationNotice": "This password reset link will expire in 30 minutes.",
-  "ignoreInstruction": "If you did not request this password reset, please ignore this email.",
+  "resetInstruction": "Reset your password",
+  "resetPassword": "Please click the link below to reset your password",
+  "copyLinkInstruction": "Or copy the link and paste it in your browser",
+  "expirationNotice": "This password reset link will expire in 30 minutes",
+  "ignoreInstruction": "If you did not request this password reset, please ignore this email",
   "thankYou": "Thank you for using our service!"
 }

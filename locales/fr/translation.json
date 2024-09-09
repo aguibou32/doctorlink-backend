@@ -44,9 +44,10 @@
   "emailNotAssociatedWithAUser": "Cette addresse e-mail n'est pas associée à un utilisateur actuel. Veuillez réessayer.",
   "passwordResetEmailSent": "Un lien de réinitialisation de mot de passe a été envoyé à votre adresse e-mail. Veuillez vérifier votre boîte de réception et suivre les instructions pour réinitialiser votre mot de passe.",
   "greeting": "Salut,",
-  "resetInstruction": "Réinitialisez votre mot de passe.",
-  "copyLinkInstruction": "Ou copiez le lien et collez-le dans votre navigateur.",
-  "expirationNotice": "Ce lien de réinitialisation de mot de passe expirera dans 30 minutes.",
-  "ignoreInstruction": "Si vous n'êtes pas à l'origine de cette demande, veuillez ignorer cet e-mail.",
-  "thankYou": "Merci d'utiliser notre service !"
+  "resetInstruction": "Réinitialisez votre mot de passe",
+  "resetPassword": "Veuillez cliquer sur le lien ci-dessous pour réinitialiser votre mot de passe",
+  "copyLinkInstruction": "Ou copiez le lien et collez-le dans votre navigateur",
+  "expirationNotice": "Ce lien de réinitialisation de mot de passe expirera dans 30 minutes",
+  "ignoreInstruction": "Si vous n'êtes pas à l'origine de cette demande, veuillez ignorer cet e-mail",
+  "thankYou": "Merci d'utiliser notre service"
 }

@@ -437,13 +437,17 @@ const forgotPassword = asyncHandler(async (req, res) => {
   await user.save()
 
   const resetLink = `${process.env.FRONTEND_URL}/reset-password/${resetToken}`
+
+  const greeting = t('greeting')
+  const resetInstruction = t('resetInstruction')
+  const resetPassword = t('resetPassword')
+  const copyLinkInstruction = t('copyLinkInstruction')
+  const expirationNotice = t('expirationNotice')
+  const ignoreInstruction = t('ignoreInstruction')
+  const thankYou = t('thankYou')
+
   try {
-    await sendForgotPasswordResetLink(user.email, user.name, resetLink, t('greeting'), t('resetInstruction',
-      t('copyLinkInstruction'),
-      t('expirationNotice'),
-      t('ignoreInstruction'),
-      t('thankYou')
-    )
+    await sendForgotPasswordResetLink(user.email, user.name, resetLink, greeting, resetInstruction,resetPassword, copyLinkInstruction, expirationNotice, ignoreInstruction, thankYou
   )
 
     res.status(200).json({message: t('passwordResetEmailSent')})
@@ -451,8 +455,6 @@ const forgotPassword = asyncHandler(async (req, res) => {
     res.status(500)
     throw new Error('cannotSendEmail')
   }
-  
-
 })
 
 export {
