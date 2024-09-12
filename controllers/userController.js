@@ -3,11 +3,14 @@ import TempUser from "../models/TempUserModel.js"
 import asyncHandler from "../middleware/asyncHandler.js"
 import bcrypt from 'bcrypt'
 import generateToken from "../utils/generateToken.js"
-import {  sendVerificationEmail, 
-          sendForgotPasswordResetLink } from "../utils/sendEmail.js"
+import {
+  sendVerificationEmail,
+  sendForgotPasswordResetLink
+} from "../utils/sendEmail.js"
 
 import registerSchema from "../schemas/registerSchema.js"
 import forgotPasswordSchema from "../schemas/forgotPasswordSchema.js"
+import resetPasswordSchema from "../schemas/resetPasswordSchema.js"
 
 const generateAndSaveToken = async user => {
   const verificationToken = user.generateVerificationToken()
@@ -88,6 +91,7 @@ const checkPhoneInUse = asyncHandler(async (req, res) => {
 // @route POST api/users/
 // @access Public
 const registerUser = asyncHandler(async (req, res) => {
+
   const { t } = req
   const { name, surname, gender, dob, email, phone, password, terms } = req.body
 
@@ -412,28 +416,32 @@ const verifyEmailChange = asyncHandler(async (req, res) => {
 // @route POST api/users/forgot-password
 // access Public
 const forgotPassword = asyncHandler(async (req, res) => {
-
   const { t } = req
-
   const { email } = req.body
 
-  console.log(email)
-
   try {
-    await forgotPasswordSchema.validate({email}, { abortEarly: false })
+    await forgotPasswordSchema.validate({ email }, { abortEarly: false })
   } catch (error) {
     res.status(400)
     throw new Error(error.errors ? error.errors.join(', ') : 'Validation failed')
   }
 
   const user = await User.findOne({ email })
-
   if (!user) {
     res.status(400)
     throw new Error(t('emailNotAssociatedWithAUser'))
   }
 
+  // Check if last email was sent within the last minute
+  const oneMinuteAgo = Date.now() - 60 * 1000
+  if (user.lastResetPasswordEmailSentAt && user.lastResetPasswordEmailSentAt > oneMinuteAgo) {
+    res.status(429)
+    throw new Error(t('forgotPasswordCooldown'))
+  }
+
+
   const resetToken = user.generateResetPasswordToken()
+  user.resetPasswordToken = resetToken
   await user.save()
 
   const resetLink = `${process.env.FRONTEND_URL}/reset-password/${resetToken}`
@@ -447,14 +455,53 @@ const forgotPassword = asyncHandler(async (req, res) => {
   const thankYou = t('thankYou')
 
   try {
-    await sendForgotPasswordResetLink(user.email, user.name, resetLink, greeting, resetInstruction,resetPassword, copyLinkInstruction, expirationNotice, ignoreInstruction, thankYou
-  )
+    await sendForgotPasswordResetLink(user.email, user.name, resetLink, greeting, resetInstruction, resetPassword, copyLinkInstruction, expirationNotice, ignoreInstruction, thankYou)
 
-    res.status(200).json({message: t('passwordResetEmailSent')})
+    user.lastResetPasswordEmailSentAt = Date.now()
+    await user.save()
+
+    res.status(200).json({ message: t('passwordResetEmailSent') })
+
   } catch (error) {
     res.status(500)
     throw new Error('cannotSendEmail')
   }
+})
+
+
+const resetPassword = asyncHandler(async (req, res) => {
+  const { t } = req
+  const { newPassword, token } = req.body
+
+  try {
+    await resetPasswordSchema.validate({ newPassword, token }, { abortEarly: false })
+  } catch (error) {
+    res.status(400)
+    throw new Error(error.errors ? error.errors.join(', ') : 'Validation failed')
+  }
+  const user = await User.findOne({
+    resetPasswordToken: token,
+    resetPasswordExpiry: { $gt: Date.now() } // Ensure the token hasn't expired
+  })
+
+
+  if (!user) {
+    res.status(400)
+    throw new Error(t('invalidOrExpiredToken'))
+  }
+
+  // Update the user's password
+
+  const salt = await bcrypt.genSalt(10)
+  const hashedNewPassword = await bcrypt.hash(newPassword, salt)
+  user.password = hashedNewPassword
+
+  // Clear the reset token and expiration time
+  user.resetPasswordExpiry = undefined
+  user.resetPasswordToken = undefined
+  
+  await user.save()
+  res.status(200).json({ message: t('passwordResetSuccessful') })
 })
 
 export {
@@ -469,5 +516,6 @@ export {
   sendEmailChangeVerification,
   resendEmailChangeVerification,
   verifyEmailChange,
-  forgotPassword
+  forgotPassword,
+  resetPassword
 }

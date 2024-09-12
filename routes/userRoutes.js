@@ -14,7 +14,8 @@ import {
   sendEmailChangeVerification,
   resendEmailChangeVerification,
   verifyEmailChange,
-  forgotPassword
+  forgotPassword,
+  resetPassword
 
 } from '../controllers/userController.js'
 
@@ -32,5 +33,6 @@ router.route('/send-email-change-verification').post(protect, sendEmailChangeVer
 router.route('/resend-email-change-verification').post(protect, resendEmailChangeVerification)
 router.route('/verify-new-email').post(protect, verifyEmailChange)
 router.route('/forgot-password').post(forgotPassword)
+router.route('/reset-password').post(resetPassword)
 
 export default router 
