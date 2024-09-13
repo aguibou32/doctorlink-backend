@@ -52,5 +52,22 @@
   "expirationNotice": "Ce lien de réinitialisation de mot de passe expirera dans 30 minutes",
   "ignoreInstruction": "Si vous n'êtes pas à l'origine de cette demande, veuillez ignorer cet e-mail",
   "thankYou": "Merci d'utiliser notre service",
-  "passwordResetSuccessful": "Votre mot de passe a été réinitialisé"
+  "passwordResetSuccessful": "Votre mot de passe a été réinitialisé",
+  "currentPasswordIncorrect": "Le mot de passe actuel que vous avez entré est incorrect.",
+  "passwordUpdatedSuccessfully": "Votre mot de passe a été mis à jour avec succès.",
+  "currentPasswordRequired": "Mot de passe actuel est requis",
+  "newPasswordRequired": "Nouveau mot de passe est requis",
+  "passwordUpdatedTitle": "Mot de passe mis à jour avec succès",
+  "passwordUpdatedText": "Votre mot de passe a été mis à jour avec succès. Si ce changement a été effectué par vous, aucune autre action n'est nécessaire.",
+  "ifNotYouText": "Si vous n'avez pas demandé ce changement, veuillez contacter immédiatement notre équipe de support.",
+  "contactSupportText": "Pour plus d'assistance, contactez le support.",
+  "passwordUpdated": "Mot de passe mis à jour",
+  "cannotSendNotificationEmail": "Impossible d'envoyer l'email de notification.",
+  "passwordChangedSuccessfully": "Le mot de passe a été changé avec succès.",
+  "emailVerificationTitle": "Vérification de l'email",
+  "confirmEmailAddressTitle": "Confirmez votre adresse email",
+  "enterVerificationCodeText": "Veuillez entrer ce code de vérification pour confirmer que c'est votre email.",
+  "verificationCodeExpiryText": "Les codes de vérification expirent après 30 minutes.",
+  "ignoreEmailText": "Si vous n'avez pas demandé ce code, veuillez ignorer cet email.",
+  "thankYouText": "Merci d'utiliser notre service !"
 }

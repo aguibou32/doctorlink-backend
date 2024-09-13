@@ -5,12 +5,14 @@ import bcrypt from 'bcrypt'
 import generateToken from "../utils/generateToken.js"
 import {
   sendVerificationEmail,
-  sendForgotPasswordResetLink
+  sendForgotPasswordResetLink,
+  sendPasswordChangeNotification
 } from "../utils/sendEmail.js"
 
 import registerSchema from "../schemas/registerSchema.js"
 import forgotPasswordSchema from "../schemas/forgotPasswordSchema.js"
 import resetPasswordSchema from "../schemas/resetPasswordSchema.js"
+import changePasswordSchema from "../schemas/changePasswordSchema.js"
 
 const generateAndSaveToken = async user => {
   const verificationToken = user.generateVerificationToken()
@@ -20,9 +22,30 @@ const generateAndSaveToken = async user => {
 
 // Helper function to send verification email to both 
 // TempUser or regular User (DRY principle)
-const sendVerificationTokenEmail = async (email, name, token, t) => {
+const sendVerificationTokenEmail = async (
+  email,
+  name,
+  token,
+  emailVerificationTitle,
+  confirmEmailAddressTitle,
+  greeting,
+  enterVerificationCodeText,
+  verificationCodeExpiryText,
+  ignoreEmailText,
+  thankYouText
+
+) => {
   try {
-    await sendVerificationEmail(email, name, token) // Removed t if not needed
+    await sendVerificationEmail(email, name, token,
+      emailVerificationTitle,
+      confirmEmailAddressTitle,
+      greeting,
+      enterVerificationCodeText,
+      verificationCodeExpiryText,
+      ignoreEmailText,
+      thankYouText
+
+    ) // Removed t if not needed
   } catch (error) {
     throw new Error(t('cannotSendEmail'))
   }
@@ -243,7 +266,7 @@ const loginUser = asyncHandler(async (req, res) => {
       birthCountry: user.birthCountry,
       isEmailVerified: user.isEmailVerified,
       isPhoneNumberVerified: user.isPhoneNumberVerified,
-      role: user.role
+      // role: user.role
     })
   } else {
     res.status(401)
@@ -332,8 +355,26 @@ const sendEmailChangeVerification = asyncHandler(async (req, res) => {
 
   const verificationToken = await generateAndSaveToken(user)
   // Try to send verification email
+
+  const emailVerificationTitle = t('emailVerificationTitle')
+  const confirmEmailAddressTitle = t('confirmEmailAddressTitle')
+  const greeting = t('greeting')
+  const enterVerificationCodeText = t('enterVerificationCodeText')
+  const verificationCodeExpiryText = t('verificationCodeExpiryText')
+  const ignoreEmailText = t('ignoreEmailText')
+  const thankYouText = t('thankYouText')
+
   try {
-    await sendVerificationTokenEmail(newEmail, user.name, verificationToken, t)
+    await sendVerificationTokenEmail(
+      newEmail, user.name, verificationToken,
+      emailVerificationTitle,
+      confirmEmailAddressTitle,
+      greeting,
+      enterVerificationCodeText,
+      verificationCodeExpiryText,
+      ignoreEmailText,
+      thankYouText
+    )
     user.lastVerificationEmailSentAt = Date.now()
     await user.save()
 
@@ -414,7 +455,7 @@ const verifyEmailChange = asyncHandler(async (req, res) => {
 
 // @desc Forgot password 
 // @route POST api/users/forgot-password
-// access Public
+// @access Public
 const forgotPassword = asyncHandler(async (req, res) => {
   const { t } = req
   const { email } = req.body
@@ -453,6 +494,7 @@ const forgotPassword = asyncHandler(async (req, res) => {
   const expirationNotice = t('expirationNotice')
   const ignoreInstruction = t('ignoreInstruction')
   const thankYou = t('thankYou')
+  
 
   try {
     await sendForgotPasswordResetLink(user.email, user.name, resetLink, greeting, resetInstruction, resetPassword, copyLinkInstruction, expirationNotice, ignoreInstruction, thankYou)
@@ -468,7 +510,9 @@ const forgotPassword = asyncHandler(async (req, res) => {
   }
 })
 
-
+// @desc Reset password
+// @route POST api/users/reset-password
+// @access Public
 const resetPassword = asyncHandler(async (req, res) => {
   const { t } = req
   const { newPassword, token } = req.body
@@ -481,7 +525,7 @@ const resetPassword = asyncHandler(async (req, res) => {
   }
   const user = await User.findOne({
     resetPasswordToken: token,
-    resetPasswordExpiry: { $gt: Date.now() } // Ensure the token hasn't expired
+    resetPasswordExpiry: { $gt: Date.now() } // Making sure the token hasn't expired
   })
 
 
@@ -499,10 +543,63 @@ const resetPassword = asyncHandler(async (req, res) => {
   // Clear the reset token and expiration time
   user.resetPasswordExpiry = undefined
   user.resetPasswordToken = undefined
-  
+
   await user.save()
   res.status(200).json({ message: t('passwordResetSuccessful') })
 })
+
+// @desc Change password
+// @route POST api/users/change-password
+// @access Private
+const changePassword = asyncHandler(async (req, res) => {
+  const { t } = req
+  const { currentPassword, newPassword } = req.body
+
+  try {
+    await changePasswordSchema.validate({ currentPassword, newPassword }, { abortEarly: false })
+  } catch (error) {
+    res.status(400)
+    throw new Error(error.errors ? error.errors.join(', ') : 'Validation failed')
+  }
+
+  const user = await User.findById(req.user.id)
+
+  if (!user) {
+    return res.status(404).json({ message: ('userNotFound') })
+  }
+
+  const isMatch = await bcrypt.compare(currentPassword, user.password)
+  if (!isMatch) {
+    return res.status(400).json({ message: t('currentPasswordIncorrect') })
+  }
+
+  const salt = await bcrypt.genSalt(10)
+  user.password = await bcrypt.hash(newPassword, salt)
+
+  const toEmail = user.email
+  const passwordUpdated = t('passwordUpdated')
+  const passwordUpdatedTitle = t('passwordUpdatedTitle')
+  const greeting = t('greeting')
+  const name = user.name
+  const passwordUpdatedText = t('passwordUpdatedText')
+  const ifNotYouText = t('ifNotYouText')
+  const contactSupportText = t('contactSupportText')
+  const thankYou = t('thankYou')
+
+  try {
+    await sendPasswordChangeNotification(toEmail, passwordUpdated,
+      passwordUpdatedTitle, greeting, name, passwordUpdatedText,
+      ifNotYouText, contactSupportText, thankYou)
+
+    await user.save()
+    res.status(200).json({ message: t('passwordUpdatedSuccessfully') })
+  } catch (error) {
+    res.status(500)
+    throw new Error(t('cannotSendNotificationEmail'))
+  }
+  res.status(200).json({ message: t('passwordChangedSuccessfully') })
+})
+
 
 export {
   checkEmailInUse,
@@ -517,5 +614,6 @@ export {
   resendEmailChangeVerification,
   verifyEmailChange,
   forgotPassword,
-  resetPassword
+  resetPassword,
+  changePassword
 }
