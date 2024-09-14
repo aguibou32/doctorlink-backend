@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{{twoFactorAuthentication}}</title>
+    <style>
+      @import url("https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css");
+    </style>
+  </head>
+  <body class="min-h-screen flex justify-center items-center p-6 bg-gray-100">
+    <div class="flex flex-col space-y-6">
+      <img src="logo.svg" class="w-36" alt="logo" />
+      <h1 class="mb-4 text-xl font-bold text-gray-800">{{twoFactorAuthenticationTitle}}</h1>
+      <div class="max-w-3xl p-8 bg-white rounded-lg shadow-sm">
+        <div class="text-gray-600 mb-4">
+          <p class="mb-4">{{greeting}} {{name}},</p>
+          <p>{{twoFactorAuthenticationText}}</p>
+          <p class="mt-4">
+            <strong>{{twoFactorCode}}:</strong> <span class="text-lg font-semibold">{{authenticationCode}}</span>
+          </p>
+        </div>
+        <p class="text-gray-600 mt-4">
+          {{ifNotYouText}} <br />
+          {{contactSupportText}}
+        </p>
+        <div class="mt-6">
+          <p class="text-gray-600">{{thankYou}}</p>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

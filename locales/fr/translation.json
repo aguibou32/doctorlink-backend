@@ -69,5 +69,13 @@
   "enterVerificationCodeText": "Veuillez entrer ce code de vérification pour confirmer que c'est votre email.",
   "verificationCodeExpiryText": "Les codes de vérification expirent après 30 minutes.",
   "ignoreEmailText": "Si vous n'avez pas demandé ce code, veuillez ignorer cet email.",
-  "thankYouText": "Merci d'utiliser notre service !"
+  "thankYouText": "Merci d'utiliser notre service !",
+  "twoFactorAuthentication": "Authentification à deux facteurs requise",
+  "twoFactorAuthenticationTitle": "Authentification à deux facteurs",
+  "twoFactorAuthenticationText": "Pour terminer votre connexion, veuillez entrer le code d'authentification suivant :",
+  "twoFactorCode": "Votre code d'authentification est",
+  "twoFactorAuthenticationRequired": "Authentification à deux facteurs requise pour un nouvel appareil.",
+  "twoFactorAuthenticationSuccess": "Authentification à deux facteurs réussie. Connexion terminée !",
+  "invalidTwoFactorCode": "Code d'authentification à deux facteurs invalide.",
+  "userLoggedOut": "Utilisateur déconnecté"
 }

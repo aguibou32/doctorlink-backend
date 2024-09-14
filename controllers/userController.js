@@ -6,7 +6,8 @@ import generateToken from "../utils/generateToken.js"
 import {
   sendVerificationEmail,
   sendForgotPasswordResetLink,
-  sendPasswordChangeNotification
+  sendPasswordChangeNotification,
+  sendTwoFactorCode
 } from "../utils/sendEmail.js"
 
 import registerSchema from "../schemas/registerSchema.js"
@@ -36,7 +37,10 @@ const sendVerificationTokenEmail = async (
 
 ) => {
   try {
-    await sendVerificationEmail(email, name, token,
+    await sendVerificationEmail(
+      email,
+      name,
+      token,
       emailVerificationTitle,
       confirmEmailAddressTitle,
       greeting,
@@ -74,7 +78,7 @@ const checkEmailInUse = asyncHandler(async (req, res) => {
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
   if (!emailRegex.test(email)) {
-    res.status(400);
+    res.status(400)
     throw new Error(t('invalidEmailFormat'))
   }
 
@@ -153,8 +157,27 @@ const registerUser = asyncHandler(async (req, res) => {
   // when we call generateAndSaveToken, we are already saving the user, that's why we not saving the user
   // again in the try catch block
 
+  const emailVerificationTitle = t('emailVerificationTitle')
+  const confirmEmailAddressTitle = t('confirmEmailAddressTitle')
+  const greeting = t('greeting')
+  const enterVerificationCodeText = t('enterVerificationCodeText')
+  const verificationCodeExpiryText = t('verificationCodeExpiryText')
+  const ignoreEmailText = t('ignoreEmailText')
+  const thankYouText = t('thankYouText')
+
   try {
-    await sendVerificationTokenEmail(tempUser.email, tempUser.name, verificationToken, t)
+    await sendVerificationTokenEmail(
+      tempUser.email,
+      tempUser.name,
+      verificationToken,
+      emailVerificationTitle,
+      confirmEmailAddressTitle,
+      greeting,
+      enterVerificationCodeText,
+      verificationCodeExpiryText,
+      ignoreEmailText,
+      thankYouText
+    )
     tempUser.lastVerificationEmailSentAt = Date.now()
     await tempUser.save()
     res.status(201).json({ email: tempUser.email })
@@ -236,8 +259,28 @@ const resendVerificationEmail = asyncHandler(async (req, res) => {
   tempUser.lastVerificationEmailSentAt = Date.now()
   await tempUser.save()
 
+  const emailVerificationTitle = t('emailVerificationTitle')
+  const confirmEmailAddressTitle = t('confirmEmailAddressTitle')
+  const greeting = t('greeting')
+  const enterVerificationCodeText = t('enterVerificationCodeText')
+  const verificationCodeExpiryText = t('verificationCodeExpiryText')
+  const ignoreEmailText = t('ignoreEmailText')
+  const thankYouText = t('thankYouText')
+
+
   // Resend verification email
-  await sendVerificationTokenEmail(tempUser.email, tempUser.name, newVerificationToken, t)
+  await sendVerificationTokenEmail(
+    tempUser.email,
+    tempUser.name,
+    newVerificationToken,
+    emailVerificationTitle,
+    confirmEmailAddressTitle,
+    greeting,
+    enterVerificationCodeText,
+    verificationCodeExpiryText,
+    ignoreEmailText,
+    thankYouText
+  )
 
   res.status(200).json({ message: t('verificationEmailResent') })
 })
@@ -246,31 +289,113 @@ const resendVerificationEmail = asyncHandler(async (req, res) => {
 // @route POST api/users/login
 // @access Public
 const loginUser = asyncHandler(async (req, res) => {
-  const { t } = req
-  const { email, password, rememberMe } = req.body
 
-  const user = await User.findOne({ email: email })
+  const { t } = req
+  const { email, password, deviceId, deviceName, rememberMe } = req.body
+
+  const user = await User.findOne({ email })
 
   if (user && (await user.matchPassword(password))) {
+    const ip = req.ip || req.headers['x-forwarded-for'] || req.connection.remoteAddress
+
+    const isKnownDevice = user.devices.some(
+      (device) => device.deviceId === deviceId
+    )
+
+    if (!isKnownDevice) {
+      if (user.isTwoFactorEnabled) {
+        const twoFactorCode = user.generateTwoFactorCode()
+        await user.save()
+
+        const toEmail = user.email
+        const name = user.name
+        const twoFactorAuthentication = t('twoFactorAuthentication')
+        const twoFactorAuthenticationTitle = t('twoFactorAuthenticationTitle')
+        const greeting = t('greeting')
+        const twoFactorAuthenticationText = t('twoFactorAuthenticationText')
+        const authenticationCode = t('authenticationCode')
+        const ifNotYouText = t('ifNotYouText')
+        const contactSupportText = t('contactSupportText')
+        const thankYou = t('thankYou')
+
+        // sendTwoFactorCode(
+        //   toEmail,
+        //   twoFactorAuthentication,
+        //   twoFactorAuthenticationTitle,
+        //   greeting,
+        //   name,
+        //   twoFactorAuthenticationText,
+        //   twoFactorCode,
+        //   authenticationCode,
+        //   ifNotYouText,
+        //   contactSupportText,
+        //   thankYou
+        // )
+
+        // Respond that 2FA is required
+        return res.status(200).json({
+          _id: user._id,
+          email: user.email,
+          message: t('twoFactorAuthenticationRequired'),
+          isTwoFactorRequired: true,
+        })
+      }
+    }
+
+    user.lastLogin = new Date()
+    user.devices.push({
+      deviceId,
+      deviceName,
+      lastLogin: user.lastLogin,
+      ip
+    })
+
+    await user.save()
     generateToken(res, user._id)
 
     return res.json({
       _id: user._id,
       name: user.name,
-      surname: user.surname,
-      gender: user.gender,
-      dob: user.dob,
       email: user.email,
-      phone: user.phone,
-      birthPlace: user.birthPlace,
-      birthCountry: user.birthCountry,
-      isEmailVerified: user.isEmailVerified,
-      isPhoneNumberVerified: user.isPhoneNumberVerified,
-      // role: user.role
+      message: 'Login successful!',
+      isTwoFactorRequired: false,
     })
   } else {
     res.status(401)
-    throw new Error(t('invalidCredentials'))
+    throw new Error('Invalid credentials')
+  }
+})
+
+// @desc Verify 2FA code and complete login
+// @route POST api/users/verify-2fa
+// @access Public
+const verifyTwoFactor = asyncHandler(async (req, res) => {
+  const { email, twoFactorCode, deviceId, deviceName } = req.body
+  const user = await User.findOne({ email })
+
+  if (user && user.verifyTwoFactorCode(twoFactorCode)) {
+    // Add the new device to the user's device list
+    user.lastLogin = new Date()
+    const ip = req.ip || req.headers['x-forwarded-for'] || req.connection.remoteAddress
+    user.devices.push({
+      deviceId,
+      deviceName,
+      lastLogin: user.lastLogin,
+      ip,
+    })
+
+    await user.save()
+    generateToken(res, user._id)  // Generate token after 2FA verification
+
+    return res.json({
+      _id: user._id,
+      name: user.name,
+      email: user.email,
+      message: t('twoFactorAuthenticationSuccess'),
+    })
+  } else {
+    res.status(401)
+    throw new Error(t('invalidTwoFactorCode'))
   }
 })
 
@@ -278,11 +403,14 @@ const loginUser = asyncHandler(async (req, res) => {
 // @route POST /api/users/logout
 // @access Private
 const logoutUser = asyncHandler(async (req, res) => {
+
+  const { t } = req
+  
   res.cookie('jwt', '', {
     httpOnly: true,
     expires: new Date(0)
   })
-  res.status(200).json({ message: 'User logged out' })
+  res.status(200).json({ message: t('userLoggedOut') })
 })
 
 // @desc Update user 
@@ -366,7 +494,8 @@ const sendEmailChangeVerification = asyncHandler(async (req, res) => {
 
   try {
     await sendVerificationTokenEmail(
-      newEmail, user.name, verificationToken,
+      newEmail, user.name,
+      verificationToken,
       emailVerificationTitle,
       confirmEmailAddressTitle,
       greeting,
@@ -394,8 +523,6 @@ const resendEmailChangeVerification = asyncHandler(async (req, res) => {
   const user = await User.findById(req.user.id)
   const { newEmail } = req.body
 
-
-
   if (!newEmail) {
     res.status(400)
     throw new Error(t('pleaseProvideEmail'))
@@ -419,8 +546,30 @@ const resendEmailChangeVerification = asyncHandler(async (req, res) => {
   user.lastVerificationEmailSentAt = Date.now()
   await user.save()
 
+
+  const emailVerificationTitle = t('emailVerificationTitle')
+  const confirmEmailAddressTitle = t('confirmEmailAddressTitle')
+  const greeting = t('greeting')
+  const enterVerificationCodeText = t('enterVerificationCodeText')
+  const verificationCodeExpiryText = t('verificationCodeExpiryText')
+  const ignoreEmailText = t('ignoreEmailText')
+  const thankYouText = t('thankYouText')
+
+
+
   // Resend verification email
-  await sendVerificationTokenEmail(newEmail, user.name, newVerificationToken, t)
+  await sendVerificationTokenEmail(
+    newEmail,
+    user.name,
+    newVerificationToken,
+    emailVerificationTitle,
+    confirmEmailAddressTitle,
+    greeting,
+    enterVerificationCodeText,
+    verificationCodeExpiryText,
+    ignoreEmailText,
+    thankYouText
+  )
 
   res.status(200).json({ message: t('verificationEmailResent') })
 })
@@ -494,7 +643,7 @@ const forgotPassword = asyncHandler(async (req, res) => {
   const expirationNotice = t('expirationNotice')
   const ignoreInstruction = t('ignoreInstruction')
   const thankYou = t('thankYou')
-  
+
 
   try {
     await sendForgotPasswordResetLink(user.email, user.name, resetLink, greeting, resetInstruction, resetPassword, copyLinkInstruction, expirationNotice, ignoreInstruction, thankYou)
@@ -608,6 +757,7 @@ export {
   verifyEmail,
   resendVerificationEmail,
   loginUser,
+  verifyTwoFactor,
   logoutUser,
   updateUserProfile,
   sendEmailChangeVerification,

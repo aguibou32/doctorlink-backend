@@ -1,6 +1,6 @@
-import mongoose from "mongoose"
-import bcrypt from 'bcrypt'
-import crypto from 'crypto'
+import mongoose from "mongoose"  
+import bcrypt from 'bcrypt'  
+import crypto from 'crypto'  
 
 const userSchema = new mongoose.Schema({
   name: {
@@ -68,30 +68,60 @@ const userSchema = new mongoose.Schema({
     type: Date,
   },
   lastResetPasswordEmailSentAt: {
-    type: Date
-  }
-},
-  { timestamps: true }
-)
+    type: Date,
+  },
+  devices: [{
+    deviceId: String, 
+    deviceName: String,  
+    lastLogin: Date,
+    ip: String,  
+    isTrusted: { type: Boolean, default: false },  
+  }],
+  isTwoFactorEnabled: {  
+    type: Boolean,
+    default: true,
+  },
+  twoFactorCode: {  
+    type: String,
+  },
+  twoFactorExpiry: { 
+    type: Date,
+  },
+}, { timestamps: true })  
 
+// Generate verification token (2FA)
 userSchema.methods.generateVerificationToken = function () {
-  const randomDigits = () => Math.floor(100000 + Math.random() * 900000).toString()
-  this.verificationToken = randomDigits()
-  this.verificationExpiry = Date.now() + 30 * 60 * 1000 // 30 min
-  return this.verificationToken
-}
+  const randomDigits = () => Math.floor(100000 + Math.random() * 900000).toString()  
+  this.verificationToken = randomDigits()  
+  this.verificationExpiry = Date.now() + 30 * 60 * 1000
+  return this.verificationToken  
+}  
 
+// Generate 2FA code
+userSchema.methods.generateTwoFactorCode = function () {
+  const randomDigits = () => Math.floor(100000 + Math.random() * 900000).toString()  
+  this.twoFactorCode = randomDigits()  
+  this.twoFactorExpiry = Date.now() + 10 * 60 * 1000  
+  return this.twoFactorCode  
+}  
+
+// Verify the 2FA code
+userSchema.methods.verifyTwoFactorCode = function (enteredCode) {
+  return enteredCode === this.twoFactorCode && Date.now() < this.twoFactorExpiry  
+}  
+
+// Generate reset password token
 userSchema.methods.generateResetPasswordToken = function () {
-  const resetToken = crypto.randomBytes(32).toString('hex')
-  this.resetPasswordToken = crypto.createHash('sha256').update(resetToken).digest('hex')
-  this.resetPasswordExpiry = Date.now() + 30 * 60 * 1000 // 30 min
-  return resetToken
-}
+  const resetToken = crypto.randomBytes(32).toString('hex')  
+  this.resetPasswordToken = crypto.createHash('sha256').update(resetToken).digest('hex')  
+  this.resetPasswordExpiry = Date.now() + 30 * 60 * 1000    
+  return resetToken  
+}  
 
-
+// Match password for login
 userSchema.methods.matchPassword = async function (enteredPassword) {
-  return await bcrypt.compare(enteredPassword, this.password)
-}
+  return await bcrypt.compare(enteredPassword, this.password)  
+}  
 
-const User = mongoose.model("User", userSchema)
-export default User
+const User = mongoose.model("User", userSchema)  
+export default User  
