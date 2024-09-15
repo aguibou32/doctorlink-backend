@@ -290,6 +290,12 @@ const resendVerificationEmail = asyncHandler(async (req, res) => {
 // @access Public
 const loginUser = asyncHandler(async (req, res) => {
 
+  const ip1 = req.ip
+  console.log(ip1)
+  // const ip = req.ip || req.headers['x-forwarded-for'] || req.connection.remoteAddress
+  // console.log(ip)
+
+
   const { t } = req
   const { email, password, deviceId, deviceName, rememberMe } = req.body
 
