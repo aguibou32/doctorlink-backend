@@ -74,7 +74,7 @@ const userSchema = new mongoose.Schema({
     deviceId: String, 
     deviceName: String,  
     lastLogin: Date,
-    ip: String,  
+    clientIp: String,  
     isTrusted: { type: Boolean, default: false },  
   }],
   isTwoFactorEnabled: {  
@@ -83,6 +83,9 @@ const userSchema = new mongoose.Schema({
   },
   twoFactorCode: {  
     type: String,
+  },
+  twoFactorCodeLastSent: {  
+    type: Date,
   },
   twoFactorExpiry: { 
     type: Date,

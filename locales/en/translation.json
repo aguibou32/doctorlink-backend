@@ -20,6 +20,7 @@
   "invalidToken": "Invalid token",
   "expiredToken": "Expired token",
   "verificationEmailCooldown": "Please wait a minute before requesting another verification email.",
+  "verificationCodeCooldown": "Please wait a minute before requesting another verification code.",
   "forgotPasswordCooldown": "Please wait a minute before requesting another password reset link.",
   "newEmailCurrentEmail": "New email cannot be your current email",
   "emailRequired": "The email address is required",

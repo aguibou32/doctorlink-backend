@@ -14,6 +14,8 @@ import registerSchema from "../schemas/registerSchema.js"
 import forgotPasswordSchema from "../schemas/forgotPasswordSchema.js"
 import resetPasswordSchema from "../schemas/resetPasswordSchema.js"
 import changePasswordSchema from "../schemas/changePasswordSchema.js"
+import requestIp from 'request-ip'
+
 
 const generateAndSaveToken = async user => {
   const verificationToken = user.generateVerificationToken()
@@ -290,11 +292,9 @@ const resendVerificationEmail = asyncHandler(async (req, res) => {
 // @access Public
 const loginUser = asyncHandler(async (req, res) => {
 
-  const ip1 = req.ip
-  console.log(ip1)
-  // const ip = req.ip || req.headers['x-forwarded-for'] || req.connection.remoteAddress
-  // console.log(ip)
-
+  // console.log(req.body.deviceId)
+  // console.log(req.body.deviceName)
+  // console.log(requestIp.getClientIp(req))
 
   const { t } = req
   const { email, password, deviceId, deviceName, rememberMe } = req.body
@@ -302,15 +302,28 @@ const loginUser = asyncHandler(async (req, res) => {
   const user = await User.findOne({ email })
 
   if (user && (await user.matchPassword(password))) {
-    const ip = req.ip || req.headers['x-forwarded-for'] || req.connection.remoteAddress
+
+    const clientIp = requestIp.getClientIp(req)
 
     const isKnownDevice = user.devices.some(
-      (device) => device.deviceId === deviceId
+      (device) =>
+        device.deviceId === deviceId &&
+        device.deviceName === deviceName &&
+        device.clientIp === clientIp
     )
 
     if (!isKnownDevice) {
       if (user.isTwoFactorEnabled) {
+
+        // Check if last email was sent within the last minute
+        const oneMinuteAgo = Date.now() - 60 * 1000
+        if (user.twoFactorCodeLastSent && user.twoFactorCodeLastSent > oneMinuteAgo) {
+          res.status(429);
+          throw new Error(t('verificationCodeCooldown'))
+        }
+
         const twoFactorCode = user.generateTwoFactorCode()
+        user.twoFactorCodeLastSent = Date.now()
         await user.save()
 
         const toEmail = user.email
@@ -324,36 +337,34 @@ const loginUser = asyncHandler(async (req, res) => {
         const contactSupportText = t('contactSupportText')
         const thankYou = t('thankYou')
 
-        // sendTwoFactorCode(
-        //   toEmail,
-        //   twoFactorAuthentication,
-        //   twoFactorAuthenticationTitle,
-        //   greeting,
-        //   name,
-        //   twoFactorAuthenticationText,
-        //   twoFactorCode,
-        //   authenticationCode,
-        //   ifNotYouText,
-        //   contactSupportText,
-        //   thankYou
-        // )
+        sendTwoFactorCode(
+          toEmail,
+          twoFactorAuthentication,
+          twoFactorAuthenticationTitle,
+          greeting,
+          name,
+          twoFactorAuthenticationText,
+          twoFactorCode,
+          authenticationCode,
+          ifNotYouText,
+          contactSupportText,
+          thankYou
+        )
 
         // Respond that 2FA is required
         return res.status(200).json({
-          _id: user._id,
-          email: user.email,
-          message: t('twoFactorAuthenticationRequired'),
           isTwoFactorRequired: true,
+          email: user.email,
+          phone: user.phone,
         })
       }
     }
-
     user.lastLogin = new Date()
     user.devices.push({
       deviceId,
       deviceName,
       lastLogin: user.lastLogin,
-      ip
+      clientIp
     })
 
     await user.save()
@@ -361,14 +372,12 @@ const loginUser = asyncHandler(async (req, res) => {
 
     return res.json({
       _id: user._id,
-      name: user.name,
-      email: user.email,
       message: 'Login successful!',
       isTwoFactorRequired: false,
     })
   } else {
     res.status(401)
-    throw new Error('Invalid credentials')
+    throw new Error(t('invalidCredentials'))
   }
 })
 
@@ -376,18 +385,23 @@ const loginUser = asyncHandler(async (req, res) => {
 // @route POST api/users/verify-2fa
 // @access Public
 const verifyTwoFactor = asyncHandler(async (req, res) => {
+
+  const { t } = req
+
+  console.log(req.body)
+
   const { email, twoFactorCode, deviceId, deviceName } = req.body
   const user = await User.findOne({ email })
 
   if (user && user.verifyTwoFactorCode(twoFactorCode)) {
     // Add the new device to the user's device list
     user.lastLogin = new Date()
-    const ip = req.ip || req.headers['x-forwarded-for'] || req.connection.remoteAddress
+
     user.devices.push({
       deviceId,
       deviceName,
       lastLogin: user.lastLogin,
-      ip,
+      clientIp: requestIp.getClientIp(req)
     })
 
     await user.save()
@@ -396,7 +410,12 @@ const verifyTwoFactor = asyncHandler(async (req, res) => {
     return res.json({
       _id: user._id,
       name: user.name,
+      surname: user.surname,
       email: user.email,
+      gender: user.gender,
+      dob: user.dob,
+      phone: user.phone,
+      isEmailVerified: true,
       message: t('twoFactorAuthenticationSuccess'),
     })
   } else {
@@ -411,7 +430,7 @@ const verifyTwoFactor = asyncHandler(async (req, res) => {
 const logoutUser = asyncHandler(async (req, res) => {
 
   const { t } = req
-  
+
   res.cookie('jwt', '', {
     httpOnly: true,
     expires: new Date(0)

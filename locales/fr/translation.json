@@ -20,6 +20,8 @@
   "invalidToken": "Token invalide",
   "expiredToken": "Token expiré",
   "verificationEmailCooldown": "Veuillez attendre une minute avant de redemander un autre e-mail de vérification.",
+  "verificationCodeCooldown": "Veuillez attendre une minute avant de redemander un autre code de vérification.",
+
   "forgotPasswordCooldown": "Veuillez attendre une minute avant de demander un autre lien de réinitialisation de mot de passe.",
   "newEmailCurrentEmail": "Le nouvel e-mail ne peut pas être votre e-mail actuel",
   "emailRequired": "L'adresse e-mail est obligatoire",
