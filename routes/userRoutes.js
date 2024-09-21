@@ -17,8 +17,9 @@ import {
   forgotPassword,
   resetPassword,
   changePassword,
-  verifyTwoFactor
-
+  verifyTwoFactor,
+  resend2FACodeByEmail,
+  resend2FACodeBySMS
 } from '../controllers/userController.js'
 
 import checkObjectId from '../middleware/checkObjectId.js'
@@ -38,5 +39,7 @@ router.route('/forgot-password').post(forgotPassword)
 router.route('/reset-password').post(resetPassword)
 router.route('/change-password').post(protect, changePassword)
 router.route('/verify-two-factor').post(verifyTwoFactor)
+router.route('/resend-2FA-code-by-email').post(resend2FACodeByEmail)
+router.route('/resend-2FA-code-by-sms').post(resend2FACodeBySMS)
 
 export default router 

@@ -21,7 +21,6 @@
   "expiredToken": "Token expiré",
   "verificationEmailCooldown": "Veuillez attendre une minute avant de redemander un autre e-mail de vérification.",
   "verificationCodeCooldown": "Veuillez attendre une minute avant de redemander un autre code de vérification.",
-
   "forgotPasswordCooldown": "Veuillez attendre une minute avant de demander un autre lien de réinitialisation de mot de passe.",
   "newEmailCurrentEmail": "Le nouvel e-mail ne peut pas être votre e-mail actuel",
   "emailRequired": "L'adresse e-mail est obligatoire",
@@ -79,5 +78,7 @@
   "twoFactorAuthenticationRequired": "Authentification à deux facteurs requise pour un nouvel appareil.",
   "twoFactorAuthenticationSuccess": "Authentification à deux facteurs réussie. Connexion terminée !",
   "invalidTwoFactorCode": "Code d'authentification à deux facteurs invalide.",
-  "userLoggedOut": "Utilisateur déconnecté"
+  "userLoggedOut": "Utilisateur déconnecté",
+  "twoFactorCodeSent": "Un nouveau a été envoyé à votre adresse e-mail.",
+  "smsTwoFactorCodeMessage": "Votre code de verification Doclink est:"
 }

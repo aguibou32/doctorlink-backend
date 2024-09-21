@@ -78,5 +78,7 @@
   "twoFactorAuthenticationRequired": "Two-factor authentication required for a new device.",
   "twoFactorAuthenticationSuccess": "Two-factor authentication successful. Login completed!",
   "invalidTwoFactorCode": "Invalid two-factor authentication code",
-  "userLoggedOut": "User logged out"
+  "userLoggedOut": "User logged out",
+  "twoFactorCodeSent": "A new code has been sent to your email.",
+  "smsTwoFactorCodeMessage": "Your DocLink verification code is:"
 }

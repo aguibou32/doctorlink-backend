@@ -15,7 +15,8 @@ import forgotPasswordSchema from "../schemas/forgotPasswordSchema.js"
 import resetPasswordSchema from "../schemas/resetPasswordSchema.js"
 import changePasswordSchema from "../schemas/changePasswordSchema.js"
 import requestIp from 'request-ip'
-
+import resend2FACodeSchema from "../schemas/resend2FACode.js"
+import twilioClient from "../utils/twilioClient.js"
 
 const generateAndSaveToken = async user => {
   const verificationToken = user.generateVerificationToken()
@@ -318,7 +319,7 @@ const loginUser = asyncHandler(async (req, res) => {
         // Check if last email was sent within the last minute
         const oneMinuteAgo = Date.now() - 60 * 1000
         if (user.twoFactorCodeLastSent && user.twoFactorCodeLastSent > oneMinuteAgo) {
-          res.status(429);
+          res.status(429) 
           throw new Error(t('verificationCodeCooldown'))
         }
 
@@ -359,19 +360,20 @@ const loginUser = asyncHandler(async (req, res) => {
         })
       }
     }
-    user.lastLogin = new Date()
-    user.devices.push({
-      deviceId,
-      deviceName,
-      lastLogin: user.lastLogin,
-      clientIp
-    })
 
+    user.lastLogin = new Date()
     await user.save()
     generateToken(res, user._id)
 
     return res.json({
       _id: user._id,
+      name: user.name,
+      surname: user.surname,
+      email: user.email,
+      gender: user.gender,
+      dob: user.dob,
+      phone: user.phone,
+      isEmailVerified: true,
       message: 'Login successful!',
       isTwoFactorRequired: false,
     })
@@ -388,8 +390,6 @@ const verifyTwoFactor = asyncHandler(async (req, res) => {
 
   const { t } = req
 
-  console.log(req.body)
-
   const { email, twoFactorCode, deviceId, deviceName } = req.body
   const user = await User.findOne({ email })
 
@@ -401,7 +401,8 @@ const verifyTwoFactor = asyncHandler(async (req, res) => {
       deviceId,
       deviceName,
       lastLogin: user.lastLogin,
-      clientIp: requestIp.getClientIp(req)
+      clientIp: requestIp.getClientIp(req),
+      isTrusted: true
     })
 
     await user.save()
@@ -423,6 +424,141 @@ const verifyTwoFactor = asyncHandler(async (req, res) => {
     throw new Error(t('invalidTwoFactorCode'))
   }
 })
+
+// @desc Resend 2FA code by email
+// @route POST api/users/resend-2FA-code-by-email
+// @access Public
+const resend2FACodeByEmail = asyncHandler(async (req, res) => {
+
+  const { t } = req
+  const { email } = req.body
+
+  try {
+    // Validate email input
+    await resend2FACodeSchema.validate(req.body, { abortEarly: false })
+
+  } catch (error) {
+    res.status(400)
+    throw new Error(error.errors ? error.errors.join(', ') : t('validationFailed'))
+  }
+
+  // Find user by email
+  const user = await User.findOne({ email })
+
+  if (!user) {
+    res.status(404) // Use 404 to indicate resource not found
+    throw new Error(t('userNotFound'))
+  }
+
+  // Check if a 2FA code was sent within the last minute
+  const oneMinuteAgo = Date.now() - 60 * 1000
+
+  if(user.twoFactorCodeLastSent && user.twoFactorCodeLastSent > oneMinuteAgo){
+    res.status(429) // Too many requests
+    throw new Error(t('verificationCodeCooldown'))
+  }
+
+  // Generate a new 2FA code
+  const twoFactorCode = user.generateTwoFactorCode()
+  user.twoFactorCodeLastSent = Date.now()
+
+  // Save user after updating the timestamp
+  await user.save()
+
+  // Send 2FA code via email
+  const toEmail = user.email
+  const name = user.name
+  const twoFactorAuthentication = t('twoFactorAuthentication')
+  const twoFactorAuthenticationTitle = t('twoFactorAuthenticationTitle')
+  const greeting = t('greeting')
+  const twoFactorAuthenticationText = t('twoFactorAuthenticationText')
+  const authenticationCode = t('authenticationCode')
+  const ifNotYouText = t('ifNotYouText')
+  const contactSupportText = t('contactSupportText')
+  const thankYou = t('thankYou')
+
+  sendTwoFactorCode(
+    toEmail,
+    twoFactorAuthentication,
+    twoFactorAuthenticationTitle,
+    greeting,
+    name,
+    twoFactorAuthenticationText,
+    twoFactorCode,
+    authenticationCode,
+    ifNotYouText,
+    contactSupportText,
+    thankYou
+  )
+  // Return a success message
+  res.status(200).json({
+    message: t('twoFactorCodeSent'),
+    isTwoFactorRequired : true,
+    email: user.email
+  })
+})
+
+
+// @desc Resend 2FA code by SMS
+// @route POST api/users/resend-2FA-code-by-sms
+// @access Public
+const resend2FACodeBySMS = asyncHandler(async (req, res) => {
+  const { t } = req
+  const { phone } = req.body
+
+  // try {
+  //   // Validate phone number input
+  //   await resend2FACodeSchema.validate(req.body, { abortEarly: false }) 
+  // } catch (error) {
+  //   res.status(400) 
+  //   throw new Error(error.errors ? error.errors.join(', ') : t('validationFailed')) 
+  // }
+
+  // Find user by phone number
+  const user = await User.findOne({ phone }) 
+
+  if (!user) {
+    res.status(404) 
+    throw new Error(t('userNotFound')) 
+  }
+
+  // Check if a 2FA code was sent within the last minute
+  // const oneMinuteAgo = Date.now() - 60 * 1000 
+
+  // if (user.twoFactorCodeLastSent && user.twoFactorCodeLastSent > oneMinuteAgo) {
+  //   res.status(429) 
+  //   throw new Error(t('verificationCodeCooldown')) 
+  // }
+
+  // Generate a new 2FA code
+  const twoFactorCode = user.generateTwoFactorCode() 
+  user.twoFactorCodeLastSent = Date.now() 
+
+  await user.save() 
+
+  const toPhone = user.phone 
+  const message = `${t('smsTwoFactorCodeMessage')} ${twoFactorCode}`;
+
+  try {
+    await twilioClient.messages.create({
+      body: message,
+      from: process.env.TWILIO_PHONE_NUMBER,
+      to: "+15145762484"
+    }) 
+  } catch (error) {
+    console.log(error)
+    res.status(500) 
+    throw new Error(t('smsSendingFailed')) 
+  }
+
+  // Return a success message
+  res.status(200).json({
+    message: t('twoFactorCodeSentViaSMS'),
+    isTwoFactorRequired: true,
+    phone: user.phone
+  }) 
+})
+
 
 // @desc Logout user & clear cookies
 // @route POST /api/users/logout
@@ -669,16 +805,14 @@ const forgotPassword = asyncHandler(async (req, res) => {
   const ignoreInstruction = t('ignoreInstruction')
   const thankYou = t('thankYou')
 
-
   try {
     await sendForgotPasswordResetLink(user.email, user.name, resetLink, greeting, resetInstruction, resetPassword, copyLinkInstruction, expirationNotice, ignoreInstruction, thankYou)
 
     user.lastResetPasswordEmailSentAt = Date.now()
     await user.save()
-
     res.status(200).json({ message: t('passwordResetEmailSent') })
 
-  } catch (error) {
+  } catch (error){
     res.status(500)
     throw new Error('cannotSendEmail')
   }
@@ -774,7 +908,6 @@ const changePassword = asyncHandler(async (req, res) => {
   res.status(200).json({ message: t('passwordChangedSuccessfully') })
 })
 
-
 export {
   checkEmailInUse,
   checkPhoneInUse,
@@ -783,6 +916,8 @@ export {
   resendVerificationEmail,
   loginUser,
   verifyTwoFactor,
+  resend2FACodeByEmail,
+  resend2FACodeBySMS,
   logoutUser,
   updateUserProfile,
   sendEmailChangeVerification,
