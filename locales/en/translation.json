@@ -80,5 +80,8 @@
   "invalidTwoFactorCode": "Invalid two-factor authentication code",
   "userLoggedOut": "User logged out",
   "twoFactorCodeSent": "A new code has been sent to your email.",
-  "smsTwoFactorCodeMessage": "Your DocLink verification code is:"
+  "smsTwoFactorCodeMessage": "Your DocLink verification code is:",
+  "rememberMeRequired": "Remember me is required",
+  "deviceNameRequired": "Device name is required",
+  "deviceIdRequired": "Device ID is required"
 }

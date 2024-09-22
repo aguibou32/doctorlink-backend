@@ -3,6 +3,7 @@ import TempUser from "../models/TempUserModel.js"
 import asyncHandler from "../middleware/asyncHandler.js"
 import bcrypt from 'bcrypt'
 import generateToken from "../utils/generateToken.js"
+
 import {
   sendVerificationEmail,
   sendForgotPasswordResetLink,
@@ -14,9 +15,12 @@ import registerSchema from "../schemas/registerSchema.js"
 import forgotPasswordSchema from "../schemas/forgotPasswordSchema.js"
 import resetPasswordSchema from "../schemas/resetPasswordSchema.js"
 import changePasswordSchema from "../schemas/changePasswordSchema.js"
+import emailInUseSchema from "../schemas/emailInUseSchema.js"
+
 import requestIp from 'request-ip'
 import resend2FACodeSchema from "../schemas/resend2FACode.js"
 import twilioClient from "../utils/twilioClient.js"
+import loginSchema from "../schemas/loginSchema.js"
 
 const generateAndSaveToken = async user => {
   const verificationToken = user.generateVerificationToken()
@@ -73,19 +77,15 @@ const checkEmailInUse = asyncHandler(async (req, res) => {
   const { t } = req
   const { email } = req.body
 
-  if (!email) {
+  try {
+    await emailInUseSchema.validate({email}, { abortEarly: false })
+  } catch (error) {
     res.status(400)
-    throw new Error(t('emailRequired'))
+    throw new Error(error.errors ? error.errors.join(', ') : 'Validation failed')
   }
 
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-
-  if (!emailRegex.test(email)) {
-    res.status(400)
-    throw new Error(t('invalidEmailFormat'))
-  }
-
-  const emailInUse = await User.findOne({ email })
+  // I want the search to return true for any variant of test@email.com (e.g Test@email.com)
+  const emailInUse = await User.findOne({ email: { $regex: `^${email}$`, $options: 'i' } })
 
   if (emailInUse) {
     res.status(400)
@@ -125,6 +125,11 @@ const registerUser = asyncHandler(async (req, res) => {
   const { t } = req
   const { name, surname, gender, dob, email, phone, password, terms } = req.body
 
+  if(!terms){
+    res.status(400)
+    throw new Error('termsAndConditionsError')
+  }
+
   try {
     await registerSchema.validate(req.body, { abortEarly: false })
   } catch (error) {
@@ -145,6 +150,7 @@ const registerUser = asyncHandler(async (req, res) => {
 
   const salt = await bcrypt.genSalt(10)
   const hashedPassword = await bcrypt.hash(password, salt)
+
 
   const tempUser = new TempUser({
     name,
@@ -194,6 +200,7 @@ const registerUser = asyncHandler(async (req, res) => {
 // @route POST api/users/verify-email
 // @access Public
 const verifyEmail = asyncHandler(async (req, res) => {
+
   const { t } = req
   const { email, token } = req.body
 
@@ -299,6 +306,15 @@ const loginUser = asyncHandler(async (req, res) => {
 
   const { t } = req
   const { email, password, deviceId, deviceName, rememberMe } = req.body
+
+  try {
+    // Validate email input
+    await loginSchema.validate(req.body, { abortEarly: false })
+  } catch (error) {
+    res.status(400)
+    throw new Error(error.errors ? error.errors.join(', ') : t('validationFailed'))
+  }
+  
 
   const user = await User.findOne({ email })
 
