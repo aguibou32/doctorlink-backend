@@ -84,5 +84,6 @@
   "rememberMeRequired": "Se souvenir de moi est requis",
   "deviceNameRequired": "Le nom de l'appareil est requis",
   "deviceIdRequired": "L'ID de l'appareil est requis",
-  "twoFactorCodeRequired": "Code à usage unique requis"
+  "twoFactorCodeRequired": "Code à usage unique requis",
+  "twoFactorCodeSentViaSMS": "Un code de vérification a été envoyé à votre numéro de téléphone par SMS."
 }

@@ -58,7 +58,6 @@ import twilioClient from "../utils/twilioClient.js"
   delete userInfo._id
   delete userInfo.password
 
-  console.log(userInfo)
   return res.status(200).json({ userInfo })
 })
 
@@ -244,6 +243,9 @@ const resend2FACodeByEmail = asyncHandler(async (req, res) => {
 // @route POST api/users/resend-2FA-code-by-sms
 // @access Public
 const resend2FACodeBySMS = asyncHandler(async (req, res) => {
+
+  console.log(req.body)
+  
   const { t } = req
   const { phone } = req.body
 
@@ -262,6 +264,13 @@ const resend2FACodeBySMS = asyncHandler(async (req, res) => {
     throw new Error(t('userNotFound'))
   }
 
+  // Preventing spam
+  const cooldownPeriod = 60 * 1000
+  if (Date.now() - user.twoFactorCodeLastSent < cooldownPeriod) {
+    res.status(429)
+    throw new Error(t('waitBeforeRequestingCodeAgain'))
+  }
+
   // Generate a new 2FA code
   const twoFactorCode = user.generateTwoFactorCode()
   user.twoFactorCodeLastSent = Date.now()
@@ -269,7 +278,7 @@ const resend2FACodeBySMS = asyncHandler(async (req, res) => {
   await user.save()
 
   const toPhone = user.phone
-  const message = `${t('smsTwoFactorCodeMessage')} ${twoFactorCode}`;
+  const message = `${t('smsTwoFactorCodeMessage')} ${twoFactorCode}`
 
   try {
     await twilioClient.messages.create({
@@ -278,7 +287,11 @@ const resend2FACodeBySMS = asyncHandler(async (req, res) => {
       to: toPhone
     })
   } catch (error) {
-    console.log(error)
+    console.error('Twilio error:', error)
+    if (error.code === 21608) {  // Invalid phone number
+      res.status(400)
+      throw new Error(t('invalidPhoneNumber'))
+    }
     res.status(500)
     throw new Error(t('smsSendingFailed'))
   }

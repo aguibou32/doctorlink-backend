@@ -84,5 +84,6 @@
   "rememberMeRequired": "Remember me is required",
   "deviceNameRequired": "Device name is required",
   "deviceIdRequired": "Device ID is required",
-  "twoFactorCodeRequired": "Two factor code is required"
+  "twoFactorCodeRequired": "Two factor code is required",
+  "twoFactorCodeSentViaSMS": "A code has been sent to your phone number via SMS."
 }
