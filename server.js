@@ -4,6 +4,7 @@ import connectDB from "./config/db.js"
 import express from 'express'
 import cookieParser from 'cookie-parser'
 import userRoutes from './routes/userRoutes.js'
+import userVerificationRoutes from './routes/userVerificationRoutes.js'
 import { notFound, errorHandler } from './middleware/errorMiddleware.js'
 import cors from 'cors';
 import i18next from './i18next.js'
@@ -33,6 +34,7 @@ app.use(express.json())
 app.use(express.urlencoded({ extended: true }))
 
 app.use('/api/users', userRoutes)
+app.use('/api/user-verification', userVerificationRoutes)
 
 app.use(notFound)
 app.use(errorHandler)

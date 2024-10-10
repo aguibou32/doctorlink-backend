@@ -5,69 +5,26 @@ import bcrypt from 'bcrypt'
 import generateToken from "../utils/generateToken.js"
 
 import {
-  sendVerificationEmail,
   sendForgotPasswordResetLink,
   sendPasswordChangeNotification,
   sendTwoFactorCode
 } from "../utils/sendEmail.js"
 
 import registerSchema from "../schemas/registerSchema.js"
+import phoneInUseSchema from "../schemas/phoneInUseSchema.js"
+import emailInUseSchema from "../schemas/emailInUseSchema.js"
 import forgotPasswordSchema from "../schemas/forgotPasswordSchema.js"
 import resetPasswordSchema from "../schemas/resetPasswordSchema.js"
 import changePasswordSchema from "../schemas/changePasswordSchema.js"
-import emailInUseSchema from "../schemas/emailInUseSchema.js"
-
 import requestIp from 'request-ip'
-import resend2FACodeSchema from "../schemas/resend2FACode.js"
-import twilioClient from "../utils/twilioClient.js"
 import loginSchema from "../schemas/loginSchema.js"
 
-const generateAndSaveToken = async user => {
-  const verificationToken = user.generateVerificationToken()
-  await user.save()
-  return verificationToken
-}
+import sendEmailChangeVerificationSchema from "../schemas/sendEmailChangeVerificationSchema.js"
 
-// Helper function to send verification email to both 
-// TempUser or regular User (DRY principle)
-const sendVerificationTokenEmail = async (
-  email,
-  name,
-  token,
-  emailVerificationTitle,
-  confirmEmailAddressTitle,
-  greeting,
-  enterVerificationCodeText,
-  verificationCodeExpiryText,
-  ignoreEmailText,
-  thankYouText
-
-) => {
-  try {
-    await sendVerificationEmail(
-      email,
-      name,
-      token,
-      emailVerificationTitle,
-      confirmEmailAddressTitle,
-      greeting,
-      enterVerificationCodeText,
-      verificationCodeExpiryText,
-      ignoreEmailText,
-      thankYouText
-
-    ) // Removed t if not needed
-  } catch (error) {
-    throw new Error(t('cannotSendEmail'))
-  }
-}
-
-// Helper function to verify token for TempUser or regular User
-const verifyToken = (user, token, t) => {
-  if (!user) throw new Error(t('userNotFound'))
-  if (user.verificationToken !== token) throw new Error(t('invalidToken'))
-  if (user.verificationExpiry && Date.now() > user.verificationExpiry) throw new Error(t('expiredToken'))
-}
+import { generateAndSaveToken, 
+  sendVerificationTokenEmail,
+  verifyToken,
+} from "./utils/utils.js"
 
 // @desc Check if email is in use
 // @route POST api/users/check-email-in-use
@@ -78,7 +35,7 @@ const checkEmailInUse = asyncHandler(async (req, res) => {
   const { email } = req.body
 
   try {
-    await emailInUseSchema.validate({email}, { abortEarly: false })
+    await emailInUseSchema.validate({ email }, { abortEarly: false })
   } catch (error) {
     res.status(400)
     throw new Error(error.errors ? error.errors.join(', ') : 'Validation failed')
@@ -95,16 +52,19 @@ const checkEmailInUse = asyncHandler(async (req, res) => {
   }
 })
 
+
 // @desc Check if phone number is in use
 // @route POST api/users/check-phone-in-use
 // @access Public
-const checkPhoneInUse = asyncHandler(async (req, res) => {
+ const checkPhoneInUse = asyncHandler(async (req, res) => {
   const { t } = req
   const { phone } = req.body
 
-  if (!phone) {
+  try {
+    await phoneInUseSchema.validate(req.body, { abortEarly: false })
+  } catch (error) {
     res.status(400)
-    throw new Error(t('phoneRequired'))
+    throw new Error(error.errors ? error.errors.join(', ') : 'Validation failed')
   }
 
   const phoneInUse = await User.findOne({ phone })
@@ -117,15 +77,30 @@ const checkPhoneInUse = asyncHandler(async (req, res) => {
   }
 })
 
-// @desc Register user & get token
-// @route POST api/users/
+// @desc Get logged in user
+// @route GET /api/users
+// @access Private
+const getUser = asyncHandler(async (req, res) => {
+  const { t } = req
+  const loggedInUser = req.user
+
+  if (!loggedInUser) {
+    return res.status(404).json({ message: t('userNotFound') })
+  }
+  
+  res.status(200).json({ user: loggedInUser })
+})
+
+
+// @desc Get logged in user
+// @route POST /api/users
 // @access Public
 const registerUser = asyncHandler(async (req, res) => {
 
   const { t } = req
   const { name, surname, gender, dob, email, phone, password, terms } = req.body
 
-  if(!terms){
+  if (!terms) {
     res.status(400)
     throw new Error('termsAndConditionsError')
   }
@@ -189,132 +164,35 @@ const registerUser = asyncHandler(async (req, res) => {
     )
     tempUser.lastVerificationEmailSentAt = Date.now()
     await tempUser.save()
-    res.status(201).json({ email: tempUser.email })
+
+    const userInfo = tempUser.toObject()
+    delete userInfo._id
+    delete userInfo.password
+    return res.status(200).json({ userInfo })
+
+    // res.status(201).json({ email: tempUser.email })
   } catch (error) {
     res.status(500)
     throw new Error(t('cannotSendEmail'))
   }
 })
 
-// @desc Verify email
-// @route POST api/users/verify-email
-// @access Public
-const verifyEmail = asyncHandler(async (req, res) => {
 
-  const { t } = req
-  const { email, token } = req.body
-
-  const tempUser = await TempUser.findOne({ email })
-  verifyToken(tempUser, token, t)
-
-  const user = await User.create({
-    name: tempUser.name,
-    surname: tempUser.surname,
-    gender: tempUser.gender,
-    dob: tempUser.dob,
-    email: tempUser.email,
-    phone: tempUser.phone,
-    isEmailVerified: true,
-    password: tempUser.password
-  })
-
-  // Delete temporary user
-  await tempUser.deleteOne()
-
-  // Generate token for user session (to log in the user)
-  generateToken(res, user._id)
-
-  const userResponse = { // We sending back a a new user, excluding the pwd
-    name: user.name,
-    surname: user.surname,
-    gender: user.gender,
-    dob: user.dob,
-    email: user.email,
-    phone: user.phone,
-    isEmailVerified: true,
-  }
-
-  res.status(200).json(userResponse)
-})
-
-// @desc Resend verification email
-// @route POST api/users/resend-verification-email
-// @access Public
-const resendVerificationEmail = asyncHandler(async (req, res) => {
-  const { t } = req
-  const { email } = req.body
-
-  if (!email) {
-    res.status(400)
-    throw new Error(t('pleaseProvideEmail'))
-  }
-
-  const tempUser = await TempUser.findOne({ email })
-  if (!tempUser) {
-    res.status(400)
-    throw new Error(t('userNotFoundOrAlreadyVerified'))
-  }
-
-  // Check if last email was sent within the last minute
-  const oneMinuteAgo = Date.now() - 60 * 1000
-  if (tempUser.lastVerificationEmailSentAt && tempUser.lastVerificationEmailSentAt > oneMinuteAgo) {
-    res.status(429)
-    throw new Error(t('verificationEmailCooldown'))
-  }
-
-  // Generate and save new verification token
-  const newVerificationToken = await generateAndSaveToken(tempUser)
-
-  // Update the last sent timestamp
-  tempUser.lastVerificationEmailSentAt = Date.now()
-  await tempUser.save()
-
-  const emailVerificationTitle = t('emailVerificationTitle')
-  const confirmEmailAddressTitle = t('confirmEmailAddressTitle')
-  const greeting = t('greeting')
-  const enterVerificationCodeText = t('enterVerificationCodeText')
-  const verificationCodeExpiryText = t('verificationCodeExpiryText')
-  const ignoreEmailText = t('ignoreEmailText')
-  const thankYouText = t('thankYouText')
-
-
-  // Resend verification email
-  await sendVerificationTokenEmail(
-    tempUser.email,
-    tempUser.name,
-    newVerificationToken,
-    emailVerificationTitle,
-    confirmEmailAddressTitle,
-    greeting,
-    enterVerificationCodeText,
-    verificationCodeExpiryText,
-    ignoreEmailText,
-    thankYouText
-  )
-
-  res.status(200).json({ message: t('verificationEmailResent') })
-})
 
 // @desc Login user & get token
 // @route POST api/users/login
 // @access Public
 const loginUser = asyncHandler(async (req, res) => {
 
-  // console.log(req.body.deviceId)
-  // console.log(req.body.deviceName)
-  // console.log(requestIp.getClientIp(req))
-
   const { t } = req
   const { email, password, deviceId, deviceName, rememberMe } = req.body
 
   try {
-    // Validate email input
     await loginSchema.validate(req.body, { abortEarly: false })
   } catch (error) {
     res.status(400)
     throw new Error(error.errors ? error.errors.join(', ') : t('validationFailed'))
   }
-  
 
   const user = await User.findOne({ email })
 
@@ -335,7 +213,7 @@ const loginUser = asyncHandler(async (req, res) => {
         // Check if last email was sent within the last minute
         const oneMinuteAgo = Date.now() - 60 * 1000
         if (user.twoFactorCodeLastSent && user.twoFactorCodeLastSent > oneMinuteAgo) {
-          res.status(429) 
+          res.status(429)
           throw new Error(t('verificationCodeCooldown'))
         }
 
@@ -381,200 +259,16 @@ const loginUser = asyncHandler(async (req, res) => {
     await user.save()
     generateToken(res, user._id)
 
-    return res.json({
-      _id: user._id,
-      name: user.name,
-      surname: user.surname,
-      email: user.email,
-      gender: user.gender,
-      dob: user.dob,
-      phone: user.phone,
-      isEmailVerified: true,
-      message: 'Login successful!',
-      isTwoFactorRequired: false,
-    })
+    const userInfo = user.toObject()
+    delete userInfo._id
+    delete userInfo.password
+    return res.status(200).json({ userInfo })
+
   } else {
     res.status(401)
     throw new Error(t('invalidCredentials'))
   }
 })
-
-// @desc Verify 2FA code and complete login
-// @route POST api/users/verify-2fa
-// @access Public
-const verifyTwoFactor = asyncHandler(async (req, res) => {
-
-  const { t } = req
-
-  const { email, twoFactorCode, deviceId, deviceName } = req.body
-  const user = await User.findOne({ email })
-
-  if (user && user.verifyTwoFactorCode(twoFactorCode)) {
-    // Add the new device to the user's device list
-    user.lastLogin = new Date()
-
-    user.devices.push({
-      deviceId,
-      deviceName,
-      lastLogin: user.lastLogin,
-      clientIp: requestIp.getClientIp(req),
-      isTrusted: true
-    })
-
-    await user.save()
-    generateToken(res, user._id)  // Generate token after 2FA verification
-
-    return res.json({
-      _id: user._id,
-      name: user.name,
-      surname: user.surname,
-      email: user.email,
-      gender: user.gender,
-      dob: user.dob,
-      phone: user.phone,
-      isEmailVerified: true,
-      message: t('twoFactorAuthenticationSuccess'),
-    })
-  } else {
-    res.status(401)
-    throw new Error(t('invalidTwoFactorCode'))
-  }
-})
-
-// @desc Resend 2FA code by email
-// @route POST api/users/resend-2FA-code-by-email
-// @access Public
-const resend2FACodeByEmail = asyncHandler(async (req, res) => {
-
-  const { t } = req
-  const { email } = req.body
-
-  try {
-    // Validate email input
-    await resend2FACodeSchema.validate(req.body, { abortEarly: false })
-
-  } catch (error) {
-    res.status(400)
-    throw new Error(error.errors ? error.errors.join(', ') : t('validationFailed'))
-  }
-
-  // Find user by email
-  const user = await User.findOne({ email })
-
-  if (!user) {
-    res.status(404) // Use 404 to indicate resource not found
-    throw new Error(t('userNotFound'))
-  }
-
-  // Check if a 2FA code was sent within the last minute
-  const oneMinuteAgo = Date.now() - 60 * 1000
-
-  if(user.twoFactorCodeLastSent && user.twoFactorCodeLastSent > oneMinuteAgo){
-    res.status(429) // Too many requests
-    throw new Error(t('verificationCodeCooldown'))
-  }
-
-  // Generate a new 2FA code
-  const twoFactorCode = user.generateTwoFactorCode()
-  user.twoFactorCodeLastSent = Date.now()
-
-  // Save user after updating the timestamp
-  await user.save()
-
-  // Send 2FA code via email
-  const toEmail = user.email
-  const name = user.name
-  const twoFactorAuthentication = t('twoFactorAuthentication')
-  const twoFactorAuthenticationTitle = t('twoFactorAuthenticationTitle')
-  const greeting = t('greeting')
-  const twoFactorAuthenticationText = t('twoFactorAuthenticationText')
-  const authenticationCode = t('authenticationCode')
-  const ifNotYouText = t('ifNotYouText')
-  const contactSupportText = t('contactSupportText')
-  const thankYou = t('thankYou')
-
-  sendTwoFactorCode(
-    toEmail,
-    twoFactorAuthentication,
-    twoFactorAuthenticationTitle,
-    greeting,
-    name,
-    twoFactorAuthenticationText,
-    twoFactorCode,
-    authenticationCode,
-    ifNotYouText,
-    contactSupportText,
-    thankYou
-  )
-  // Return a success message
-  res.status(200).json({
-    message: t('twoFactorCodeSent'),
-    isTwoFactorRequired : true,
-    email: user.email
-  })
-})
-
-
-// @desc Resend 2FA code by SMS
-// @route POST api/users/resend-2FA-code-by-sms
-// @access Public
-const resend2FACodeBySMS = asyncHandler(async (req, res) => {
-  const { t } = req
-  const { phone } = req.body
-
-  // try {
-  //   // Validate phone number input
-  //   await resend2FACodeSchema.validate(req.body, { abortEarly: false }) 
-  // } catch (error) {
-  //   res.status(400) 
-  //   throw new Error(error.errors ? error.errors.join(', ') : t('validationFailed')) 
-  // }
-
-  // Find user by phone number
-  const user = await User.findOne({ phone }) 
-
-  if (!user) {
-    res.status(404) 
-    throw new Error(t('userNotFound')) 
-  }
-
-  // Check if a 2FA code was sent within the last minute
-  // const oneMinuteAgo = Date.now() - 60 * 1000 
-
-  // if (user.twoFactorCodeLastSent && user.twoFactorCodeLastSent > oneMinuteAgo) {
-  //   res.status(429) 
-  //   throw new Error(t('verificationCodeCooldown')) 
-  // }
-
-  // Generate a new 2FA code
-  const twoFactorCode = user.generateTwoFactorCode() 
-  user.twoFactorCodeLastSent = Date.now() 
-
-  await user.save() 
-
-  const toPhone = user.phone 
-  const message = `${t('smsTwoFactorCodeMessage')} ${twoFactorCode}`;
-
-  try {
-    await twilioClient.messages.create({
-      body: message,
-      from: process.env.TWILIO_PHONE_NUMBER,
-      to: "+15145762484"
-    }) 
-  } catch (error) {
-    console.log(error)
-    res.status(500) 
-    throw new Error(t('smsSendingFailed')) 
-  }
-
-  // Return a success message
-  res.status(200).json({
-    message: t('twoFactorCodeSentViaSMS'),
-    isTwoFactorRequired: true,
-    phone: user.phone
-  }) 
-})
-
 
 // @desc Logout user & clear cookies
 // @route POST /api/users/logout
@@ -582,7 +276,7 @@ const resend2FACodeBySMS = asyncHandler(async (req, res) => {
 const logoutUser = asyncHandler(async (req, res) => {
 
   const { t } = req
-
+  // res.clearCookie("jwt", { httpOnly: true, sameSite: "Strict" }) // Same as bellow
   res.cookie('jwt', '', {
     httpOnly: true,
     expires: new Date(0)
@@ -643,9 +337,17 @@ const updateUserProfile = asyncHandler(async (req, res) => {
 // @route POST api/users/sendEmailChangeVerification
 // @access Private
 const sendEmailChangeVerification = asyncHandler(async (req, res) => {
+
   const { t } = req
   const user = await User.findById(req.user.id)
   const { newEmail } = req.body
+
+  try {
+    await sendEmailChangeVerificationSchema.validate(req.body, { abortEarly: false })
+  } catch (error) {
+    res.status(400)
+    throw new Error(error.errors ? error.errors.join(', ') : t('validationFailed'))
+  }
 
   if (user.email === newEmail) {
     throw new Error(t("newEmailCurrentEmail"))
@@ -700,6 +402,15 @@ const resendEmailChangeVerification = asyncHandler(async (req, res) => {
   const user = await User.findById(req.user.id)
   const { newEmail } = req.body
 
+  try {
+    await sendEmailChangeVerificationSchema.validate(req.body, { abortEarly: false })
+
+  } catch (error) {
+    res.status(400)
+    throw new Error(error.errors ? error.errors.join(', ') : t('validationFailed'))
+  }
+
+
   if (!newEmail) {
     res.status(400)
     throw new Error(t('pleaseProvideEmail'))
@@ -714,6 +425,7 @@ const resendEmailChangeVerification = asyncHandler(async (req, res) => {
   if (user.lastVerificationEmailSentAt && user.lastVerificationEmailSentAt > oneMinuteAgo) {
     res.status(429)
     throw new Error(t('verificationEmailCooldown'))
+
   }
 
   // Generate and save new verification token
@@ -755,8 +467,6 @@ const resendEmailChangeVerification = asyncHandler(async (req, res) => {
 // @route POST api/users/verifyEmailChange
 // @access Private
 const verifyEmailChange = asyncHandler(async (req, res) => {
-
-  // console.log(req.body)
 
   const { t } = req
   const { newEmail, token } = req.body
@@ -828,7 +538,7 @@ const forgotPassword = asyncHandler(async (req, res) => {
     await user.save()
     res.status(200).json({ message: t('passwordResetEmailSent') })
 
-  } catch (error){
+  } catch (error) {
     res.status(500)
     throw new Error('cannotSendEmail')
   }
@@ -927,13 +637,9 @@ const changePassword = asyncHandler(async (req, res) => {
 export {
   checkEmailInUse,
   checkPhoneInUse,
+  getUser,
   registerUser,
-  verifyEmail,
-  resendVerificationEmail,
   loginUser,
-  verifyTwoFactor,
-  resend2FACodeByEmail,
-  resend2FACodeBySMS,
   logoutUser,
   updateUserProfile,
   sendEmailChangeVerification,

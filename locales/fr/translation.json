@@ -77,11 +77,12 @@
   "twoFactorCode": "Votre code d'authentification est",
   "twoFactorAuthenticationRequired": "Authentification à deux facteurs requise pour un nouvel appareil.",
   "twoFactorAuthenticationSuccess": "Authentification à deux facteurs réussie. Connexion terminée !",
-  "invalidTwoFactorCode": "Code d'authentification à deux facteurs invalide.",
+  "invalidTwoFactorCode": "Code d'authentification invalide.",
   "userLoggedOut": "Utilisateur déconnecté",
   "twoFactorCodeSent": "Un nouveau a été envoyé à votre adresse e-mail.",
   "smsTwoFactorCodeMessage": "Votre code de verification Doclink est:",
   "rememberMeRequired": "Se souvenir de moi est requis",
   "deviceNameRequired": "Le nom de l'appareil est requis",
-  "deviceIdRequired": "L'ID de l'appareil est requis"
+  "deviceIdRequired": "L'ID de l'appareil est requis",
+  "twoFactorCodeRequired": "Code à usage unique requis"
 }

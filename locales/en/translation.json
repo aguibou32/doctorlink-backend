@@ -77,11 +77,12 @@
   "twoFactorCode": "Your authentication code is",
   "twoFactorAuthenticationRequired": "Two-factor authentication required for a new device.",
   "twoFactorAuthenticationSuccess": "Two-factor authentication successful. Login completed!",
-  "invalidTwoFactorCode": "Invalid two-factor authentication code",
+  "invalidTwoFactorCode": "Invalid authentication code",
   "userLoggedOut": "User logged out",
   "twoFactorCodeSent": "A new code has been sent to your email.",
   "smsTwoFactorCodeMessage": "Your DocLink verification code is:",
   "rememberMeRequired": "Remember me is required",
   "deviceNameRequired": "Device name is required",
-  "deviceIdRequired": "Device ID is required"
+  "deviceIdRequired": "Device ID is required",
+  "twoFactorCodeRequired": "Two factor code is required"
 }
