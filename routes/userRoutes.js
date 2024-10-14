@@ -10,9 +10,7 @@ import {
   loginUser,
   logoutUser,
   updateUserProfile,
-  sendEmailChangeVerification,
-  resendEmailChangeVerification,
-  verifyEmailChange,
+
   forgotPassword,
   resetPassword,
   changePassword
@@ -27,9 +25,6 @@ router.route('/check-phone-in-use').post(checkPhoneInUse)
 router.route('/login').post(loginUser)
 router.route('/logout').post(protect, logoutUser)
 router.route('/update').put(protect, updateUserProfile)
-router.route('/send-email-change-verification').post(protect, sendEmailChangeVerification),
-router.route('/resend-email-change-verification').post(protect, resendEmailChangeVerification)
-router.route('/verify-new-email').post(protect, verifyEmailChange)
 router.route('/forgot-password').post(forgotPassword)
 router.route('/reset-password').post(resetPassword)
 router.route('/change-password').post(protect, changePassword)

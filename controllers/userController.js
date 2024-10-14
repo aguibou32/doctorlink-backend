@@ -19,11 +19,8 @@ import changePasswordSchema from "../schemas/changePasswordSchema.js"
 import requestIp from 'request-ip'
 import loginSchema from "../schemas/loginSchema.js"
 
-import sendEmailChangeVerificationSchema from "../schemas/sendEmailChangeVerificationSchema.js"
-
 import { generateAndSaveToken, 
   sendVerificationTokenEmail,
-  verifyToken,
 } from "./utils/utils.js"
 
 // @desc Check if email is in use
@@ -165,10 +162,7 @@ const registerUser = asyncHandler(async (req, res) => {
     tempUser.lastVerificationEmailSentAt = Date.now()
     await tempUser.save()
 
-    const userInfo = tempUser.toObject()
-    delete userInfo._id
-    delete userInfo.password
-    return res.status(200).json({ userInfo })
+    return res.status(200).json({ email: tempUser.email })
 
     // res.status(201).json({ email: tempUser.email })
   } catch (error) {
@@ -176,8 +170,6 @@ const registerUser = asyncHandler(async (req, res) => {
     throw new Error(t('cannotSendEmail'))
   }
 })
-
-
 
 // @desc Login user & get token
 // @route POST api/users/login
@@ -288,6 +280,7 @@ const logoutUser = asyncHandler(async (req, res) => {
 // @route PUT /api/users/update
 // @access Private
 const updateUserProfile = asyncHandler(async (req, res) => {
+
   const { t } = req
   const user = await User.findById(req.user.id)
 
@@ -310,21 +303,15 @@ const updateUserProfile = asyncHandler(async (req, res) => {
 
     const updatedUser = await user.save()
 
+    const userInfo = updatedUser.toObject()
+    delete userInfo._id
+    delete userInfo.password
+
+
+
     res.status(200).json({
       message: t('userUpdatedSuccessfully'),
-      user: {
-        _id: updatedUser._id,
-        name: updatedUser.name,
-        surname: updatedUser.surname,
-        gender: updatedUser.gender,
-        dob: updatedUser.dob,
-        email: updatedUser.email,
-        phone: updatedUser.phone,
-        isEmailVerified: updatedUser.isEmailVerified,
-        isPhoneNumberVerified: updatedUser.isPhoneNumberVerified,
-        birthPlace: updatedUser.birthPlace,
-        birthCountry: updatedUser.birthCountry
-      }
+      userInfo: userInfo
     })
 
   } else {
@@ -333,161 +320,6 @@ const updateUserProfile = asyncHandler(async (req, res) => {
   }
 })
 
-// @desc Send verification email for email change
-// @route POST api/users/sendEmailChangeVerification
-// @access Private
-const sendEmailChangeVerification = asyncHandler(async (req, res) => {
-
-  const { t } = req
-  const user = await User.findById(req.user.id)
-  const { newEmail } = req.body
-
-  try {
-    await sendEmailChangeVerificationSchema.validate(req.body, { abortEarly: false })
-  } catch (error) {
-    res.status(400)
-    throw new Error(error.errors ? error.errors.join(', ') : t('validationFailed'))
-  }
-
-  if (user.email === newEmail) {
-    throw new Error(t("newEmailCurrentEmail"))
-  }
-
-  // Check if last email was sent within the last minute
-  const oneMinuteAgo = Date.now() - 60 * 1000
-  if (user.lastVerificationEmailSentAt && user.lastVerificationEmailSentAt > oneMinuteAgo) {
-    res.status(429)
-    throw new Error(t('verificationEmailCooldown'))
-  }
-
-  const verificationToken = await generateAndSaveToken(user)
-  // Try to send verification email
-
-  const emailVerificationTitle = t('emailVerificationTitle')
-  const confirmEmailAddressTitle = t('confirmEmailAddressTitle')
-  const greeting = t('greeting')
-  const enterVerificationCodeText = t('enterVerificationCodeText')
-  const verificationCodeExpiryText = t('verificationCodeExpiryText')
-  const ignoreEmailText = t('ignoreEmailText')
-  const thankYouText = t('thankYouText')
-
-  try {
-    await sendVerificationTokenEmail(
-      newEmail, user.name,
-      verificationToken,
-      emailVerificationTitle,
-      confirmEmailAddressTitle,
-      greeting,
-      enterVerificationCodeText,
-      verificationCodeExpiryText,
-      ignoreEmailText,
-      thankYouText
-    )
-    user.lastVerificationEmailSentAt = Date.now()
-    await user.save()
-
-    res.status(201).json({ email: newEmail })
-  } catch (error) {
-    res.status(500)
-    throw new Error(t('cannotSendEmail'))
-  }
-})
-
-
-// @desc Resend verification email for email change
-// @route POST api/users/resend-email-change-verification
-// @access Private
-const resendEmailChangeVerification = asyncHandler(async (req, res) => {
-  const { t } = req
-  const user = await User.findById(req.user.id)
-  const { newEmail } = req.body
-
-  try {
-    await sendEmailChangeVerificationSchema.validate(req.body, { abortEarly: false })
-
-  } catch (error) {
-    res.status(400)
-    throw new Error(error.errors ? error.errors.join(', ') : t('validationFailed'))
-  }
-
-
-  if (!newEmail) {
-    res.status(400)
-    throw new Error(t('pleaseProvideEmail'))
-  }
-
-  if (user.email === newEmail) {
-    throw new Error(t("newEmailCurrentEmail"))
-  }
-
-  // Check if last email was sent within the last minute
-  const oneMinuteAgo = Date.now() - 60 * 1000
-  if (user.lastVerificationEmailSentAt && user.lastVerificationEmailSentAt > oneMinuteAgo) {
-    res.status(429)
-    throw new Error(t('verificationEmailCooldown'))
-
-  }
-
-  // Generate and save new verification token
-  const newVerificationToken = await generateAndSaveToken(user)
-
-  // Update the last sent timestamp
-  user.lastVerificationEmailSentAt = Date.now()
-  await user.save()
-
-
-  const emailVerificationTitle = t('emailVerificationTitle')
-  const confirmEmailAddressTitle = t('confirmEmailAddressTitle')
-  const greeting = t('greeting')
-  const enterVerificationCodeText = t('enterVerificationCodeText')
-  const verificationCodeExpiryText = t('verificationCodeExpiryText')
-  const ignoreEmailText = t('ignoreEmailText')
-  const thankYouText = t('thankYouText')
-
-
-
-  // Resend verification email
-  await sendVerificationTokenEmail(
-    newEmail,
-    user.name,
-    newVerificationToken,
-    emailVerificationTitle,
-    confirmEmailAddressTitle,
-    greeting,
-    enterVerificationCodeText,
-    verificationCodeExpiryText,
-    ignoreEmailText,
-    thankYouText
-  )
-
-  res.status(200).json({ message: t('verificationEmailResent') })
-})
-
-// @desc Verify user token for email change
-// @route POST api/users/verifyEmailChange
-// @access Private
-const verifyEmailChange = asyncHandler(async (req, res) => {
-
-  const { t } = req
-  const { newEmail, token } = req.body
-
-  const user = await User.findById(req.user.id)
-  verifyToken(user, token, t)
-
-  // Update the email and clear the verification token and expiry
-  user.email = newEmail
-  user.verificationToken = undefined
-  user.verificationExpiry = undefined
-
-  await user.save()
-
-  // console.log(user)
-
-  res.status(200).json({
-    message: t("emailAddressUpdated"),
-    email: user.email
-  })
-})
 
 // @desc Forgot password 
 // @route POST api/users/forgot-password
@@ -642,9 +474,6 @@ export {
   loginUser,
   logoutUser,
   updateUserProfile,
-  sendEmailChangeVerification,
-  resendEmailChangeVerification,
-  verifyEmailChange,
   forgotPassword,
   resetPassword,
   changePassword

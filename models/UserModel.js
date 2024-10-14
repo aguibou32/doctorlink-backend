@@ -98,13 +98,13 @@ userSchema.methods.generateVerificationToken = function () {
   this.verificationToken = randomDigits()  
   this.verificationExpiry = Date.now() + 30 * 60 * 1000
   return this.verificationToken  
-}  
+}
 
 // Generate 2FA code
 userSchema.methods.generateTwoFactorCode = function () {
   const randomDigits = () => Math.floor(100000 + Math.random() * 900000).toString()  
   this.twoFactorCode = randomDigits()  
-  this.twoFactorExpiry = Date.now() + 10 * 60 * 1000  
+  this.twoFactorExpiry = Date.now() + 30 * 60 * 1000  
   return this.twoFactorCode  
 }  
 

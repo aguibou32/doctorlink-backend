@@ -75,6 +75,7 @@
   "twoFactorAuthenticationTitle": "Authentification à deux facteurs",
   "twoFactorAuthenticationText": "Pour terminer votre connexion, veuillez entrer le code d'authentification suivant :",
   "twoFactorCode": "Votre code d'authentification est",
+  "twoFactorCodeExpiry": "Votre code expire dans 30 minutes",
   "twoFactorAuthenticationRequired": "Authentification à deux facteurs requise pour un nouvel appareil.",
   "twoFactorAuthenticationSuccess": "Authentification à deux facteurs réussie. Connexion terminée !",
   "invalidTwoFactorCode": "Code d'authentification invalide.",
@@ -85,5 +86,6 @@
   "deviceNameRequired": "Le nom de l'appareil est requis",
   "deviceIdRequired": "L'ID de l'appareil est requis",
   "twoFactorCodeRequired": "Code à usage unique requis",
-  "twoFactorCodeSentViaSMS": "Un code de vérification a été envoyé à votre numéro de téléphone par SMS."
+  "twoFactorCodeSentViaSMS": "Un code de vérification a été envoyé à votre numéro de téléphone par SMS.",
+  "waitBeforeRequestingCodeAgain": "Veuillez patienter une minute avant de demander le code à nouveau."
 }
