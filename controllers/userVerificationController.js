@@ -58,6 +58,7 @@ const verifyEmail = asyncHandler(async (req, res) => {
   const userInfo = user.toObject()
   delete userInfo._id
   delete userInfo.password
+  delete userInfo.devices // If too many devices, it makes the cookie too long and the max for a cookie is 4096 bytes 
 
   return res.status(200).json({ userInfo })
 })

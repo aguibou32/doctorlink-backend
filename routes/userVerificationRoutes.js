@@ -25,5 +25,4 @@ router.route('/send-email-change-verification').post(protect, sendEmailChangeVer
 router.route('/resend-email-change-verification').post(protect, resendEmailChangeVerification)
 router.route('/verify-new-email').post(protect, verifyEmailChange)
 
-
 export default router
