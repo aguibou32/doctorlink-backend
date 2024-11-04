@@ -100,6 +100,11 @@ userSchema.methods.generateVerificationToken = function () {
   return this.verificationToken  
 }
 
+// Verify verification token
+userSchema.methods.verifyVerificationToken = function (enteredCode) {
+  return enteredCode === this.verificationToken && Date.now() < this.verificationToken  
+}  
+
 // Generate 2FA code
 userSchema.methods.generateTwoFactorCode = function () {
   const randomDigits = () => Math.floor(100000 + Math.random() * 900000).toString()  

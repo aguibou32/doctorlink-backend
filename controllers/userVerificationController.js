@@ -1,4 +1,3 @@
-
 import generateToken from "../utils/generateToken.js"
 import verifyEmailSchema from "../schemas/verifyEmailSchema.js"
 import resend2FACodeSchema from "../schemas/resend2FACodeSchema.js"
@@ -8,7 +7,7 @@ import asyncHandler from "../middleware/asyncHandler.js"
 import User from "../models/UserModel.js"
 import verifyTwoFactorSchema from "../schemas/verifyTwoFactorSchema.js"
 import { sendTwoFactorCode } from "../utils/sendEmail.js"
-import resend2FACodeBySMSSchema from "../schemas/resend2FACodeBySMSSchema.js"
+import send2FACodeBySMSSchema from "../schemas/send2FACodeBySMSSchema.js"
 import sendEmailChangeVerificationSchema from "../schemas/sendEmailChangeVerificationSchema.js"
 import twilioClient from "../utils/twilioClient.js"
 import requestIp from 'request-ip'
@@ -16,7 +15,7 @@ import requestIp from 'request-ip'
 import {
   generateAndSaveToken,
   sendVerificationTokenEmail,
-  verifyToken
+  verifyToken,
 } from "./utils/utils.js"
 
 // @desc Verify email
@@ -142,29 +141,32 @@ const verifyTwoFactor = asyncHandler(async (req, res) => {
 
   const user = await User.findOne({ email })
 
-  if (user && user.verifyTwoFactorCode(twoFactorCode)) {
-    // Add the new device to the user's device list
-    user.lastLogin = new Date()
-
-    user.devices.push({
-      deviceId,
-      deviceName,
-      lastLogin: user.lastLogin,
-      clientIp: requestIp.getClientIp(req),
-      isTrusted: true
-    })
-
-    await user.save()
-    generateToken(res, user._id)  // Generate token after 2FA verification
-    const userInfo = user.toObject()
-    delete userInfo._id
-    delete userInfo.password
-    return res.status(200).json({ userInfo })
-
-  } else {
-    res.status(401)
-    throw new Error(t('invalidTwoFactorCode'))
+  // Verify the provided token
+  const isTokenValid = user.verifyTwoFactorCode(twoFactorCode)
+  if (!isTokenValid) {
+    res.status(401) // 401 Unauthorized for invalid token
+    throw new Error(t('invalidOrExpiredToken'))
   }
+
+  // Add the new device to the user's device list
+  user.lastLogin = new Date()
+
+  user.devices.push({
+    deviceId,
+    deviceName,
+    lastLogin: user.lastLogin,
+    clientIp: requestIp.getClientIp(req),
+    isTrusted: true
+  })
+
+  await user.save()
+  generateToken(res, user._id)  // Generate token after 2FA verification
+  const userInfo = user.toObject()
+  delete userInfo._id
+  delete userInfo.password
+  return res.status(200).json({ userInfo })
+
+
 })
 
 
@@ -244,20 +246,20 @@ const resend2FACodeByEmail = asyncHandler(async (req, res) => {
 // @desc Resend 2FA code by SMS
 // @route POST api/verify-user/resend-2FA-code-by-sms
 // @access Public
-const resend2FACodeBySMS = asyncHandler(async (req, res) => {
+const send2FACodeBySMS = asyncHandler(async (req, res) => {
 
   const { t } = req
-  const { phone } = req.body
+  const { email, phone } = req.body
 
   try {
-    await resend2FACodeBySMSSchema.validate(req.body, { abortEarly: false })
+    await send2FACodeBySMSSchema.validate(req.body, { abortEarly: false })
   } catch (error) {
     res.status(400)
     throw new Error(error.errors ? error.errors.join(', ') : t('validationFailed'))
   }
 
   // Find user by phone number
-  const user = await User.findOne({ phone })
+  const user = await User.findOne({ email })
 
   if (!user) {
     res.status(404)
@@ -277,14 +279,13 @@ const resend2FACodeBySMS = asyncHandler(async (req, res) => {
 
   await user.save()
 
-  const toPhone = user.phone
   const message = `${t('smsTwoFactorCodeMessage')} ${twoFactorCode}. ${t('twoFactorCodeExpiry')}.`
 
   try {
     await twilioClient.messages.create({
       body: message,
       from: process.env.TWILIO_PHONE_NUMBER,
-      to: toPhone
+      to: phone
     })
   } catch (error) {
     console.error('Twilio error:', error)
@@ -304,7 +305,118 @@ const resend2FACodeBySMS = asyncHandler(async (req, res) => {
   })
 })
 
-// @desc Send verification email for email change
+// @desc Resend 2FA code by SMS
+// @route POST api/verify-user/resend-2FA-code-by-sms
+// @access Public
+const resend2FACodeBySMS = asyncHandler(async (req, res) => {
+
+  const { t } = req
+  const { email, phone } = req.body
+
+  try {
+    await send2FACodeBySMSSchema.validate(req.body, { abortEarly: false })
+  } catch (error) {
+    res.status(400)
+    throw new Error(error.errors ? error.errors.join(', ') : t('validationFailed'))
+  }
+
+  // Find user by phone number
+  const user = await User.findOne({ email })
+
+  if (!user) {
+    res.status(404)
+    throw new Error(t('userNotFound'))
+  }
+
+  // Preventing spam
+  const cooldownPeriod = 60 * 1000
+  if (Date.now() - user.twoFactorCodeLastSent < cooldownPeriod) {
+    res.status(429)
+    throw new Error(t('waitBeforeRequestingCodeAgain'))
+  }
+
+  // Generate a new 2FA code
+  const twoFactorCode = user.generateTwoFactorCode()
+  user.twoFactorCodeLastSent = Date.now()
+
+  await user.save()
+
+  const message = `${t('smsTwoFactorCodeMessage')} ${twoFactorCode}. ${t('twoFactorCodeExpiry')}.`
+
+  try {
+    await twilioClient.messages.create({
+      body: message,
+      from: process.env.TWILIO_PHONE_NUMBER,
+      to: phone
+    })
+  } catch (error) {
+    console.error('Twilio error:', error)
+    if (error.code === 21608) {  // Invalid phone number
+      res.status(400)
+      throw new Error(t('invalidPhoneNumber'))
+    }
+    res.status(500)
+    throw new Error(t('smsSendingFailed'))
+  }
+
+  // Return a success message
+  res.status(200).json({
+    message: t('twoFactorCodeSentViaSMS'),
+    isTwoFactorRequired: true,
+    phone: user.phone
+  })
+})
+
+
+// @desc Verify user token for current phone or phone change
+// @route POST api/users/verify-phone-number
+// @access Private
+const verifyPhoneNumber = asyncHandler(async (req, res) => {
+
+  console.log(req.body)
+
+  
+  const { t } = req
+  const { phone, twoFactorCode } = req.body
+
+  // Find the user by ID
+  const user = await User.findById(req.user.id)
+  if (!user) {
+    res.status(404)
+    throw new Error(t('userNotFound'))
+  }
+
+  // Check if the phone is already verified
+  if (phone === user.phone && user.isPhoneNumberVerified) {
+    res.status(400)
+    throw new Error(t('phoneNumberAlreadyVerified'))
+  }
+
+  // Verify the provided token
+  const isTwoFactorCodeValid = user.verifyTwoFactorCode(twoFactorCode)
+  if (!isTwoFactorCodeValid) {
+    res.status(401) // 401 Unauthorized for invalid token
+    throw new Error(t('invalidOrExpiredToken'))
+  }
+
+  // Update phone number and verification status
+  user.phone = phone
+  user.isPhoneNumberVerified = true
+  user.twoFactorCode = undefined
+  user.twoFactorExpiry = undefined
+
+  // Save user data
+  await user.save()
+
+  // Send success response
+  res.status(200).json({
+    message: t('phoneNumberUpdated'),
+    email: user.email,
+  })
+})
+
+
+// @desc Send verification email for email changeß
 // @route POST api/verify-user/sendEmailChangeVerification
 // @access Private
 const sendEmailChangeVerification = asyncHandler(async (req, res) => {
@@ -444,6 +556,7 @@ const verifyEmailChange = asyncHandler(async (req, res) => {
 
   // Update the email and clear the verification token and expiry
   user.email = newEmail
+  user.isEmailVerified = true
   user.verificationToken = undefined
   user.verificationExpiry = undefined
 
@@ -459,11 +572,13 @@ const verifyEmailChange = asyncHandler(async (req, res) => {
 
 export {
   verifyEmail,
+  send2FACodeBySMS,
   resendVerificationEmail,
   verifyTwoFactor,
   resend2FACodeByEmail,
   resend2FACodeBySMS,
   sendEmailChangeVerification,
   resendEmailChangeVerification,
-  verifyEmailChange
+  verifyEmailChange,
+  verifyPhoneNumber
 }

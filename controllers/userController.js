@@ -11,68 +11,17 @@ import {
 } from "../utils/sendEmail.js"
 
 import registerSchema from "../schemas/registerSchema.js"
-import phoneInUseSchema from "../schemas/phoneInUseSchema.js"
-import emailInUseSchema from "../schemas/emailInUseSchema.js"
 import forgotPasswordSchema from "../schemas/forgotPasswordSchema.js"
 import resetPasswordSchema from "../schemas/resetPasswordSchema.js"
 import changePasswordSchema from "../schemas/changePasswordSchema.js"
 import requestIp from 'request-ip'
 import loginSchema from "../schemas/loginSchema.js"
 
-import { generateAndSaveToken, 
+import { 
+  generateAndSaveToken, 
   sendVerificationTokenEmail,
 } from "./utils/utils.js"
 
-// @desc Check if email is in use
-// @route POST api/users/check-email-in-use
-// @access Public
-const checkEmailInUse = asyncHandler(async (req, res) => {
-
-  const { t } = req
-  const { email } = req.body
-
-  try {
-    await emailInUseSchema.validate({ email }, { abortEarly: false })
-  } catch (error) {
-    res.status(400)
-    throw new Error(error.errors ? error.errors.join(', ') : 'Validation failed')
-  }
-
-  // I want the search to return true for any variant of test@email.com (e.g Test@email.com)
-  const emailInUse = await User.findOne({ email: { $regex: `^${email}$`, $options: 'i' } })
-
-  if (emailInUse) {
-    res.status(400)
-    throw new Error(t('emailInUse'))
-  } else {
-    res.status(200).json({ message: t('emailAvailable') })
-  }
-})
-
-
-// @desc Check if phone number is in use
-// @route POST api/users/check-phone-in-use
-// @access Public
- const checkPhoneInUse = asyncHandler(async (req, res) => {
-  const { t } = req
-  const { phone } = req.body
-
-  try {
-    await phoneInUseSchema.validate(req.body, { abortEarly: false })
-  } catch (error) {
-    res.status(400)
-    throw new Error(error.errors ? error.errors.join(', ') : 'Validation failed')
-  }
-
-  const phoneInUse = await User.findOne({ phone })
-
-  if (phoneInUse) {
-    res.status(400)
-    throw new Error(t('phoneInUse'))
-  } else {
-    res.status(200).json({ message: t('phoneAvailable') })
-  }
-})
 
 // @desc Get logged in user
 // @route GET /api/users
@@ -470,8 +419,6 @@ const changePassword = asyncHandler(async (req, res) => {
 })
 
 export {
-  checkEmailInUse,
-  checkPhoneInUse,
   getUser,
   registerUser,
   loginUser,

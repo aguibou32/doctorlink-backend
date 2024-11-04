@@ -17,6 +17,7 @@
   "cannotSendEmail": "Impossible d'envoyer l'email.",
   "verificationEmailResent": "Email de vérification renvoyé.",
   "emailAddressUpdated": "Adresse e-mail mise à jour",
+  "phoneNumberUpdated": "Numéro de téléphone vérifié et/ou mis à jour",
   "invalidToken": "Token invalide",
   "expiredToken": "Token expiré",
   "verificationEmailCooldown": "Veuillez attendre une minute avant de redemander un autre e-mail de vérification.",
