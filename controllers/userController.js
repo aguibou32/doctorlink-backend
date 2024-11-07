@@ -18,8 +18,8 @@ import requestIp from 'request-ip'
 import loginSchema from "../schemas/loginSchema.js"
 
 import { 
-  generateAndSaveToken, 
-  sendVerificationTokenEmail,
+  generateAndSaveCode, 
+  sendVerificationCodeEmail,
 } from "./utils/utils.js"
 
 
@@ -83,7 +83,7 @@ const registerUser = asyncHandler(async (req, res) => {
     password: hashedPassword,
   })
 
-  const verificationToken = await generateAndSaveToken(tempUser)
+  const verificationCode = await generateAndSaveCode(tempUser)
   // when we call generateAndSaveToken, we are already saving the user, that's why we not saving the user
   // again in the try catch block
 
@@ -96,10 +96,11 @@ const registerUser = asyncHandler(async (req, res) => {
   const thankYouText = t('thankYouText')
 
   try {
-    await sendVerificationTokenEmail(
+    
+    await sendVerificationCodeEmail(
       tempUser.email,
       tempUser.name,
-      verificationToken,
+      verificationCode,
       emailVerificationTitle,
       confirmEmailAddressTitle,
       greeting,

@@ -36,7 +36,7 @@ const tempUserSchema = new mongoose.Schema({
     type: String,
     required: true
   },
-  verificationToken: {
+  verificationCode: {
     type: String,
   },
   lastVerificationEmailSentAt: {
@@ -50,9 +50,9 @@ const tempUserSchema = new mongoose.Schema({
 }, 
 { timestamps: true })
 
-tempUserSchema.methods.generateVerificationToken = function() {
+tempUserSchema.methods.generateVerificationCode = function() {
   const randomDigits = () => Math.floor(100000 + Math.random() * 900000).toString()
-  this.verificationToken = randomDigits()
+  this.verificationCode = randomDigits()
   return this.verificationToken
 }
 

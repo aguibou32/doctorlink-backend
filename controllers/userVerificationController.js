@@ -13,9 +13,9 @@ import twilioClient from "../utils/twilioClient.js"
 import requestIp from 'request-ip'
 
 import {
-  generateAndSaveToken,
-  sendVerificationTokenEmail,
-  verifyToken,
+  generateAndSaveCode,
+  sendVerificationCodeEmail,
+  verifyCode,
 } from "./utils/utils.js"
 
 // @desc Verify email
@@ -24,7 +24,9 @@ import {
 const verifyEmail = asyncHandler(async (req, res) => {
 
   const { t } = req
-  const { email, token } = req.body
+  const { email, verificationCode } = req.body
+
+  console.log(req.body)
 
   try {
     await verifyEmailSchema.validate(req.body, { abortEarly: false })
@@ -34,7 +36,7 @@ const verifyEmail = asyncHandler(async (req, res) => {
   }
 
   const tempUser = await TempUser.findOne({ email })
-  verifyToken(tempUser, token, t)
+  verifyCode(tempUser, token, t)
 
   const user = await User.create({
     name: tempUser.name,
@@ -61,7 +63,6 @@ const verifyEmail = asyncHandler(async (req, res) => {
 
   return res.status(200).json({ userInfo })
 })
-
 
 // @desc Resend verification email
 // @route POST api/users/resend-verification-email
@@ -373,9 +374,6 @@ const resend2FACodeBySMS = asyncHandler(async (req, res) => {
 // @access Private
 const verifyPhoneNumber = asyncHandler(async (req, res) => {
 
-  console.log(req.body)
-
-  
   const { t } = req
   const { phone, twoFactorCode } = req.body
 

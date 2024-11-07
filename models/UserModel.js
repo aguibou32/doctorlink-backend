@@ -52,7 +52,7 @@ const userSchema = new mongoose.Schema({
     type: String,
     required: true
   },
-  verificationToken: {
+  verificationCode: {
     type: String,
   },
   verificationExpiry: {
@@ -93,15 +93,15 @@ const userSchema = new mongoose.Schema({
 }, { timestamps: true })  
 
 // Generate verification token (2FA)
-userSchema.methods.generateVerificationToken = function () {
+userSchema.methods.generateVerificationCode = function () {
   const randomDigits = () => Math.floor(100000 + Math.random() * 900000).toString()  
-  this.verificationToken = randomDigits()  
+  this.verificationCode = randomDigits()  
   this.verificationExpiry = Date.now() + 30 * 60 * 1000
-  return this.verificationToken  
+  return this.verificationCode 
 }
 
 // Verify verification token
-userSchema.methods.verifyVerificationToken = function (enteredCode) {
+userSchema.methods.verifyVerificationCode = function (enteredCode) {
   return enteredCode === this.verificationToken && Date.now() < this.verificationToken  
 }  
 

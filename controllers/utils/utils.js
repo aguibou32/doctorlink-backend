@@ -61,18 +61,18 @@ export const checkEmailInUse = asyncHandler(async (req, res) => {
 
  // Helper function to use User or Temp model function generateVerificationToken() 
  // to generate and save token to database
-export const generateAndSaveToken = async user => {
-  const verificationToken = user.generateVerificationToken()
+export const generateAndSaveCode = async user => {
+  const verificationCode = user.generateVerificationCode()
   await user.save()
-  return verificationToken
+  return verificationCode
 }
 
 // Helper function to send verification email to both 
 // TempUser or regular User (DRY principle)
-export const sendVerificationTokenEmail = async (
+export const sendVerificationCodeEmail = async (
   email,
   name,
-  token,
+  verificationCode,
   emailVerificationTitle,
   confirmEmailAddressTitle,
   greeting,
@@ -86,7 +86,7 @@ export const sendVerificationTokenEmail = async (
     await sendVerificationEmail(
       email,
       name,
-      token,
+      verificationCode,
       emailVerificationTitle,
       confirmEmailAddressTitle,
       greeting,
@@ -102,9 +102,9 @@ export const sendVerificationTokenEmail = async (
 }
 
 // Helper function to verify token for TempUser or regular User
-export const verifyToken = (user, token, t) => {
+export const verifyCode = (user, token, t) => {
   if (!user) throw new Error(t('userNotFound'))
-  if (user.verificationToken !== token) throw new Error(t('invalidToken'))
+  if (user.verificationCode !== token) throw new Error(t('invalidToken'))
   if (user.verificationExpiry && Date.now() > user.verificationExpiry) throw new Error(t('expiredToken'))
 }
 
