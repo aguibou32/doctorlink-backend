@@ -89,5 +89,6 @@
   "twoFactorCodeRequired": "Two factor code is required",
   "twoFactorCodeSentViaSMS": "A code has been sent to your phone number via SMS.",
   "waitBeforeRequestingCodeAgain": "Please wait a minute before requesting the code again.",
-  "verificationCodeRequired": "Verification code is required."
+  "verificationCodeRequired": "Verification code is required.",
+  "verificationRateLimitError": "You have exceeded the maximum number of verification attempts allowed."
 }

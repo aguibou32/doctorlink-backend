@@ -26,8 +26,6 @@ const verifyEmail = asyncHandler(async (req, res) => {
   const { t } = req
   const { email, verificationCode } = req.body
 
-  console.log(req.body)
-
   try {
     await verifyEmailSchema.validate(req.body, { abortEarly: false })
   } catch (error) {
@@ -84,6 +82,12 @@ const resendVerificationEmail = asyncHandler(async (req, res) => {
     throw new Error(t('userNotFoundOrAlreadyVerified'))
   }
 
+  // Check if the verification rate is not reached
+  if(tempUser.userVerificationRateLimit === 5){
+    res.status(429)
+    throw new Error('rateLimiReached')
+  }
+
   // Check if last email was sent within the last minute
   const oneMinuteAgo = Date.now() - 60 * 1000
   if (tempUser.lastVerificationEmailSentAt && tempUser.lastVerificationEmailSentAt > oneMinuteAgo) {
@@ -92,7 +96,7 @@ const resendVerificationEmail = asyncHandler(async (req, res) => {
   }
 
   // Generate and save new verification token
-  const newVerificationToken = await generateAndSaveToken(tempUser)
+  const newVerificationToken = await generateAndSaveCode(tempUser)
 
   // Update the last sent timestamp
   tempUser.lastVerificationEmailSentAt = Date.now()
@@ -108,7 +112,7 @@ const resendVerificationEmail = asyncHandler(async (req, res) => {
 
 
   // Resend verification email
-  await sendVerificationTokenEmail(
+  await sendVerificationCodeEmail(
     tempUser.email,
     tempUser.name,
     newVerificationToken,

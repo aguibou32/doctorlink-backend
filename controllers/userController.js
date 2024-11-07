@@ -96,7 +96,7 @@ const registerUser = asyncHandler(async (req, res) => {
   const thankYouText = t('thankYouText')
 
   try {
-    
+
     await sendVerificationCodeEmail(
       tempUser.email,
       tempUser.name,

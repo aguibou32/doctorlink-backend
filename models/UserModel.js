@@ -58,6 +58,10 @@ const userSchema = new mongoose.Schema({
   verificationExpiry: {
     type: Date,
   },
+  userVerificationRateLimit: {
+    type: Number,
+    default: 5
+  },
   lastVerificationEmailSentAt: {
     type: Date,
   },
@@ -81,15 +85,7 @@ const userSchema = new mongoose.Schema({
     type: Boolean,
     default: true,
   },
-  twoFactorCode: {  
-    type: String,
-  },
-  twoFactorCodeLastSent: {  
-    type: Date,
-  },
-  twoFactorExpiry: { 
-    type: Date,
-  },
+  
 }, { timestamps: true })  
 
 // Generate verification token (2FA)
@@ -105,18 +101,6 @@ userSchema.methods.verifyVerificationCode = function (enteredCode) {
   return enteredCode === this.verificationToken && Date.now() < this.verificationToken  
 }  
 
-// Generate 2FA code
-userSchema.methods.generateTwoFactorCode = function () {
-  const randomDigits = () => Math.floor(100000 + Math.random() * 900000).toString()  
-  this.twoFactorCode = randomDigits()  
-  this.twoFactorExpiry = Date.now() + 30 * 60 * 1000  
-  return this.twoFactorCode  
-}  
-
-// Verify the 2FA code
-userSchema.methods.verifyTwoFactorCode = function (enteredCode) {
-  return enteredCode === this.twoFactorCode && Date.now() < this.twoFactorExpiry  
-}  
 
 // Generate reset password token
 userSchema.methods.generateResetPasswordToken = function () {

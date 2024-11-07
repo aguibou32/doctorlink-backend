@@ -89,6 +89,6 @@
   "twoFactorCodeRequired": "Code à usage unique requis",
   "twoFactorCodeSentViaSMS": "Un code de vérification a été envoyé à votre numéro de téléphone par SMS.",
   "waitBeforeRequestingCodeAgain": "Veuillez patienter une minute avant de demander le code à nouveau.",
-  "verificationCodeRequired": "Le code de vérification est requis."
-
+  "verificationCodeRequired": "Le code de vérification est requis.",
+  "verificationRateLimitError": "Vous avez dépassé le nombre maximum de tentatives de vérification autorisées."
 }

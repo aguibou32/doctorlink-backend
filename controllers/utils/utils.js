@@ -61,9 +61,15 @@ export const checkEmailInUse = asyncHandler(async (req, res) => {
 
  // Helper function to use User or Temp model function generateVerificationToken() 
  // to generate and save token to database
-export const generateAndSaveCode = async user => {
-  const verificationCode = user.generateVerificationCode()
+ export const generateAndSaveCode = async user => {
+  if (user.userVerificationRateLimit <= 0) {
+    throw new Error(t('verificationRateLimitError'))
+  }
+  const verificationCode = await user.generateVerificationCode()
+
+  user.userVerificationRateLimit -= 1
   await user.save()
+  
   return verificationCode
 }
 
