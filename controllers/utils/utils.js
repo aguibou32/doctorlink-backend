@@ -1,7 +1,3 @@
-import { 
-  sendVerificationEmail,
- } from "../../utils/sendEmail.js"
-
 import asyncHandler from "../../middleware/asyncHandler.js"
 import phoneInUseSchema from "../../schemas/phoneInUseSchema.js"
 import emailInUseSchema from "../../schemas/emailInUseSchema.js"
@@ -23,7 +19,7 @@ export const checkEmailInUse = asyncHandler(async (req, res) => {
     throw new Error(error.errors ? error.errors.join(', ') : 'Validation failed')
   }
 
-  // I want the search to return true for any variant of test@email.com (e.g Test@email.com)
+  // I want the search to return true for any variant of test@email.com (e.g TeSt@EmaIl.com)
   const emailInUse = await User.findOne({ email: { $regex: `^${email}$`, $options: 'i' } })
 
   if (emailInUse) {
@@ -33,7 +29,6 @@ export const checkEmailInUse = asyncHandler(async (req, res) => {
     res.status(200).json({ message: t('emailAvailable') })
   }
 })
-
 
 // @desc Check if phone number is in use
 // @route POST api/users/check-phone-in-use
@@ -62,50 +57,17 @@ export const checkEmailInUse = asyncHandler(async (req, res) => {
  // Helper function to use User or Temp model function generateVerificationToken() 
  // to generate and save token to database
  export const generateAndSaveCode = async user => {
-  if (user.userVerificationRateLimit <= 0) {
+  if (user.verificationCodeRateLimit <= 0) {
     throw new Error(t('verificationRateLimitError'))
   }
   const verificationCode = await user.generateVerificationCode()
 
-  user.userVerificationRateLimit -= 1
+  user.verificationCodeRateLimit -= 1
   await user.save()
   
   return verificationCode
 }
 
-// Helper function to send verification email to both 
-// TempUser or regular User (DRY principle)
-export const sendVerificationCodeEmail = async (
-  email,
-  name,
-  verificationCode,
-  emailVerificationTitle,
-  confirmEmailAddressTitle,
-  greeting,
-  enterVerificationCodeText,
-  verificationCodeExpiryText,
-  ignoreEmailText,
-  thankYouText
-
-) => {
-  try {
-    await sendVerificationEmail(
-      email,
-      name,
-      verificationCode,
-      emailVerificationTitle,
-      confirmEmailAddressTitle,
-      greeting,
-      enterVerificationCodeText,
-      verificationCodeExpiryText,
-      ignoreEmailText,
-      thankYouText
-
-    ) // Removed t if not needed
-  } catch (error) {
-    throw new Error(t('cannotSendEmail'))
-  }
-}
 
 // Helper function to verify token for TempUser or regular User
 export const verifyCode = (user, token, t) => {

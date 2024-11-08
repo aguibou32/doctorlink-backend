@@ -42,7 +42,7 @@ const tempUserSchema = new mongoose.Schema({
   lastVerificationEmailSentAt: {
     type: Date,
   },
-  userVerificationRateLimit: {
+  verificationCodeRateLimit: {
     type: Number,
     default: 5
   },
@@ -65,4 +65,5 @@ tempUserSchema.methods.matchPassword = async function (enteredPassword) {
 }
 
 const TempUser = mongoose.model("TempUser", tempUserSchema)
+
 export default TempUser

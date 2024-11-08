@@ -12,9 +12,9 @@ import sendEmailChangeVerificationSchema from "../schemas/sendEmailChangeVerific
 import twilioClient from "../utils/twilioClient.js"
 import requestIp from 'request-ip'
 
+import { sendVerificationEmail } from "../utils/sendEmail.js"
 import {
   generateAndSaveCode,
-  sendVerificationCodeEmail,
   verifyCode,
 } from "./utils/utils.js"
 
@@ -112,7 +112,7 @@ const resendVerificationEmail = asyncHandler(async (req, res) => {
 
 
   // Resend verification email
-  await sendVerificationCodeEmail(
+  await sendVerificationEmail(
     tempUser.email,
     tempUser.name,
     newVerificationToken,

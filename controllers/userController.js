@@ -17,9 +17,11 @@ import changePasswordSchema from "../schemas/changePasswordSchema.js"
 import requestIp from 'request-ip'
 import loginSchema from "../schemas/loginSchema.js"
 
+
+import { sendVerificationEmail } from "../utils/sendEmail.js"
+
 import { 
   generateAndSaveCode, 
-  sendVerificationCodeEmail,
 } from "./utils/utils.js"
 
 
@@ -96,8 +98,7 @@ const registerUser = asyncHandler(async (req, res) => {
   const thankYouText = t('thankYouText')
 
   try {
-
-    await sendVerificationCodeEmail(
+    await sendVerificationEmail(
       tempUser.email,
       tempUser.name,
       verificationCode,
@@ -109,6 +110,7 @@ const registerUser = asyncHandler(async (req, res) => {
       ignoreEmailText,
       thankYouText
     )
+
     tempUser.lastVerificationEmailSentAt = Date.now()
     await tempUser.save()
 
