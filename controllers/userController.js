@@ -137,7 +137,6 @@ const loginUser = asyncHandler(async (req, res) => {
     res.status(400)
     throw new Error(error.errors ? error.errors.join(', ') : t('validationFailed'))
   }
-
   
   const user = await User.findOne({ email: email.toLowerCase() })
 

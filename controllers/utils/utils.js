@@ -68,11 +68,10 @@ export const checkEmailInUse = asyncHandler(async (req, res) => {
   return verificationCode
 }
 
-
 // Helper function to verify token for TempUser or regular User
 export const verifyCode = (user, token, t) => {
   if (!user) throw new Error(t('userNotFound'))
-  if (user.verificationCode !== token) throw new Error(t('invalidToken'))
+  if (user.verificationCode !== token) throw new Error(t('invalidVerificationCode'))
   if (user.verificationExpiry && Date.now() > user.verificationExpiry) throw new Error(t('expiredToken'))
 }
 

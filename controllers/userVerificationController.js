@@ -34,7 +34,7 @@ const verifyEmail = asyncHandler(async (req, res) => {
   }
 
   const tempUser = await TempUser.findOne({ email })
-  verifyCode(tempUser, token, t)
+  verifyCode(tempUser, verificationCode, t)
 
   const user = await User.create({
     name: tempUser.name,
@@ -57,7 +57,7 @@ const verifyEmail = asyncHandler(async (req, res) => {
   const userInfo = user.toObject()
   delete userInfo._id
   delete userInfo.password
-  delete userInfo.devices // If too many devices, it makes the cookie too long and the max for a cookie is 4096 bytes 
+  delete userInfo.devices  
 
   return res.status(200).json({ userInfo })
 })
