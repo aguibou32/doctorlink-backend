@@ -161,7 +161,7 @@ const loginUser = asyncHandler(async (req, res) => {
           throw new Error(t('verificationCodeCooldown'))
         }
 
-        const twoFactorCode = user.generateTwoFactorCode()
+        const twoFactorCode = user.generateVerificationCode()
         user.twoFactorCodeLastSent = Date.now()
         await user.save()
 

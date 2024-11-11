@@ -62,10 +62,52 @@ const verifyEmail = asyncHandler(async (req, res) => {
   return res.status(200).json({ userInfo })
 })
 
-// @desc Resend verification email
-// @route POST api/users/resend-verification-email
+
+
+
+const handleVerificationResend = async (user, t) => {
+  if (user.userVerificationRateLimit === 5) {
+    throw new Error('rateLimitReached')
+  }
+
+  // One-minute cooldown check
+  const oneMinuteAgo = Date.now() - 60 * 1000
+  if (user.lastVerificationEmailSentAt && user.lastVerificationEmailSentAt > oneMinuteAgo) {
+    throw new Error(t('verificationEmailCooldown'))
+  }
+
+  // Generate and save new verification token
+  const newVerificationToken = await generateAndSaveCode(user)
+
+  // Update the last sent timestamp
+  user.lastVerificationEmailSentAt = Date.now()
+  await user.save()
+
+  const emailData = {
+    emailVerificationTitle: t('emailVerificationTitle'),
+    confirmEmailAddressTitle: t('confirmEmailAddressTitle'),
+    greeting: t('greeting'),
+    enterVerificationCodeText: t('enterVerificationCodeText'),
+    verificationCodeExpiryText: t('verificationCodeExpiryText'),
+    ignoreEmailText: t('ignoreEmailText'),
+    thankYouText: t('thankYouText')
+  }
+
+  // Resend verification email
+  await sendVerificationEmail(
+    user.email,
+    user.name,
+    newVerificationToken,
+    emailData
+  )
+}
+
+
+
+// @desc Resend verification email to temp user
+// @route POST api/users/resend-temp-user-verification-email
 // @access Public
-const resendVerificationEmail = asyncHandler(async (req, res) => {
+const resendTempUserVerificationEmail = asyncHandler(async (req, res) => {
   const { t } = req
   const { email } = req.body
 
@@ -82,51 +124,39 @@ const resendVerificationEmail = asyncHandler(async (req, res) => {
     throw new Error(t('userNotFoundOrAlreadyVerified'))
   }
 
-  // Check if the verification rate is not reached
-  if(tempUser.userVerificationRateLimit === 5){
-    res.status(429)
-    throw new Error('rateLimiReached')
-  }
-
-  // Check if last email was sent within the last minute
-  const oneMinuteAgo = Date.now() - 60 * 1000
-  if (tempUser.lastVerificationEmailSentAt && tempUser.lastVerificationEmailSentAt > oneMinuteAgo) {
-    res.status(429)
-    throw new Error(t('verificationEmailCooldown'))
-  }
-
-  // Generate and save new verification token
-  const newVerificationToken = await generateAndSaveCode(tempUser)
-
-  // Update the last sent timestamp
-  tempUser.lastVerificationEmailSentAt = Date.now()
-  await tempUser.save()
-
-  const emailVerificationTitle = t('emailVerificationTitle')
-  const confirmEmailAddressTitle = t('confirmEmailAddressTitle')
-  const greeting = t('greeting')
-  const enterVerificationCodeText = t('enterVerificationCodeText')
-  const verificationCodeExpiryText = t('verificationCodeExpiryText')
-  const ignoreEmailText = t('ignoreEmailText')
-  const thankYouText = t('thankYouText')
-
-
-  // Resend verification email
-  await sendVerificationEmail(
-    tempUser.email,
-    tempUser.name,
-    newVerificationToken,
-    emailVerificationTitle,
-    confirmEmailAddressTitle,
-    greeting,
-    enterVerificationCodeText,
-    verificationCodeExpiryText,
-    ignoreEmailText,
-    thankYouText
-  )
+  // Reusing the function above
+  await handleVerificationResend(tempUser, t)
 
   res.status(200).json({ message: t('verificationEmailResent') })
 })
+
+
+// @desc Resend verification email to user
+// @route POST api/users/resend-verification-email
+// @access Public
+const resendUserVerificationEmail = asyncHandler(async (req, res) => {
+  const { t } = req
+  const { email } = req.body
+
+  try {
+    await resendVerificationEmailSchema.validate(req.body, { abortEarly: false })
+  } catch (error) {
+    res.status(400)
+    throw new Error(error.errors ? error.errors.join(', ') : 'Validation failed')
+  }
+
+  const user = await User.findOne({ email })
+  if (!user || user.isEmailVerified) {
+    res.status(400)
+    throw new Error(t('userNotFoundOrAlreadyVerified'))
+  }
+
+  // Reusing the function above
+  await handleVerificationResend(user, t)
+
+  res.status(200).json({ message: t('verificationEmailResent') })
+})
+
 
 
 // @desc Verify 2FA code and complete login
@@ -208,7 +238,7 @@ const resend2FACodeByEmail = asyncHandler(async (req, res) => {
   }
 
   // Generate a new 2FA code
-  const twoFactorCode = user.generateTwoFactorCode()
+  const twoFactorCode = user.generateVerificationCode()
   user.twoFactorCodeLastSent = Date.now()
 
   // Save user after updating the timestamp
@@ -279,7 +309,7 @@ const send2FACodeBySMS = asyncHandler(async (req, res) => {
   }
 
   // Generate a new 2FA code
-  const twoFactorCode = user.generateTwoFactorCode()
+  const twoFactorCode = user.generateVerificationCode()
   user.twoFactorCodeLastSent = Date.now()
 
   await user.save()
@@ -341,7 +371,7 @@ const resend2FACodeBySMS = asyncHandler(async (req, res) => {
   }
 
   // Generate a new 2FA code
-  const twoFactorCode = user.generateTwoFactorCode()
+  const twoFactorCode = user.generateVerificationCode()
   user.twoFactorCodeLastSent = Date.now()
 
   await user.save()
@@ -575,7 +605,8 @@ const verifyEmailChange = asyncHandler(async (req, res) => {
 export {
   verifyEmail,
   send2FACodeBySMS,
-  resendVerificationEmail,
+  resendUserVerificationEmail,
+  resendTempUserVerificationEmail,
   verifyTwoFactor,
   resend2FACodeByEmail,
   resend2FACodeBySMS,
