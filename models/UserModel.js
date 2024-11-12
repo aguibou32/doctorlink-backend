@@ -74,6 +74,9 @@ const userSchema = new mongoose.Schema({
   lastResetPasswordEmailSentAt: {
     type: Date,
   },
+  lastLogin: {
+    type: Date
+  },
   devices: [{
     deviceId: String, 
     deviceName: String,  
@@ -88,7 +91,7 @@ const userSchema = new mongoose.Schema({
   
 }, { timestamps: true })  
 
-// Generate verification token (2FA)
+// Generate verification Code
 userSchema.methods.generateVerificationCode = function () {
   const randomDigits = () => Math.floor(100000 + Math.random() * 900000).toString()  
   this.verificationCode = randomDigits()  
@@ -96,7 +99,7 @@ userSchema.methods.generateVerificationCode = function () {
   return this.verificationCode 
 }
 
-// Verify verification token
+// Verify verification code
 userSchema.methods.verifyVerificationCode = function (enteredCode) {
   return enteredCode === this.verificationToken && Date.now() < this.verificationToken  
 }  

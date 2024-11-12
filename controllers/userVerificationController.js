@@ -24,88 +24,119 @@ import {
 const verifyEmail = asyncHandler(async (req, res) => {
 
   const { t } = req
-  const { email, verificationCode } = req.body
+  const { email, verificationCode, deviceId, deviceName } = req.body
 
   try {
     await verifyEmailSchema.validate(req.body, { abortEarly: false })
   } catch (error) {
     res.status(400)
-    throw new Error(error.errors ? error.errors.join(', ') : 'Validation failed')
+    throw new Error(error.errors ? error.errors.join(', ') : 'Validation failed.')
   }
 
   const user = await User.findOne({ email })
+  if (!user) {
+    res.status(404)
+    throw new Error(t('userNotFound'))
+  }
   verifyCode(user, verificationCode, t)
 
-  // Generate token for user session (to log in the user)
+  const clientIp = requestIp.getClientIp(req)
+
+  // Check if device already exists
+  const isKnownDevice = user.devices.some(device =>
+    device.deviceId === deviceId &&
+    device.deviceName === deviceName &&
+    device.clientIp === clientIp
+  )
+  if (!isKnownDevice) {
+    user.devices.push({
+      deviceId,
+      deviceName,
+      lastLogin: user.lastLogin,
+      clientIp: clientIp,
+      isTrusted: true
+    })
+  } else {
+    isKnownDevice.lastLogin = user.lastLogin
+  }
+
+  user.lastLogin = new Date()
+  user.verificationCode = null
+  user.verificationExpiry = null
+  await user.save()
+
   generateToken(res, user._id)
 
   // Prepare the newly created user info to return (excluding sensitive data)
   const userInfo = user.toObject()
   delete userInfo._id
   delete userInfo.password
-  delete userInfo.devices  
+  delete userInfo.devices
 
-  return res.status(200).json({ userInfo })
+  return res.status(200).json({ userInfo, message: t('userVerifiedLoginSuccess') })
 })
-
-
 
 // @desc Resend verification email to user
 // @route POST api/users/resend-verification-email
 // @access Public
 const resendUserVerificationEmail = asyncHandler(async (req, res) => {
-  const { t } = req
-  const { email } = req.body
 
-  try {
-    await resendVerificationEmailSchema.validate(req.body, { abortEarly: false })
-  } catch (error) {
-    res.status(400)
-    throw new Error(error.errors ? error.errors.join(', ') : 'Validation failed')
-  }
+  console.log(req.body)
 
-  const user = await User.findOne({ email })
-  if (!user || user.isEmailVerified) {
-    res.status(400)
-    throw new Error(t('userNotFoundOrAlreadyVerified'))
-  }
+  // const { t } = req
+  // const { email } = req.body
 
-  if (user.userVerificationRateLimit === 5) {
-    throw new Error('rateLimitReached')
-  }
+  // res.status(404).json({'test': 'test'})
 
-  // One-minute cooldown check
-  const oneMinuteAgo = Date.now() - 60 * 1000
-  if (user.lastVerificationEmailSentAt && user.lastVerificationEmailSentAt > oneMinuteAgo) {
-    throw new Error(t('verificationEmailCooldown'))
-  }
+  // try {
+  //   await resendVerificationEmailSchema.validate(req.body, { abortEarly: false })
+  // } catch (error) {
+  //   res.status(400)
+  //   throw new Error(error.errors ? error.errors.join(', ') : 'Validation failed')
+  // }
 
-  // Generate and save new verification token
-  const newVerificationToken = await generateAndSaveCode(user)
+  // const user = await User.findOne({ email })
+  // if (!user || user.isEmailVerified) {
+  //   res.status(400)
+  //   throw new Error(t('userNotFoundOrAlreadyVerified'))
+  // }
 
-  // Update the last sent timestamp
-  user.lastVerificationEmailSentAt = Date.now()
-  await user.save()
+  // if (user.userVerificationRateLimit === 5) {
+  //   throw new Error('rateLimitReached')
+  // }
 
-  const emailData = {
-    emailVerificationTitle: t('emailVerificationTitle'),
-    confirmEmailAddressTitle: t('confirmEmailAddressTitle'),
-    greeting: t('greeting'),
-    enterVerificationCodeText: t('enterVerificationCodeText'),
-    verificationCodeExpiryText: t('verificationCodeExpiryText'),
-    ignoreEmailText: t('ignoreEmailText'),
-    thankYouText: t('thankYouText')
-  }
+  // // One-minute cooldown check
+  // const oneMinuteAgo = Date.now() - 60 * 1000
+  // if (user.lastVerificationEmailSentAt && user.lastVerificationEmailSentAt > oneMinuteAgo) {
+  //   throw new Error(t('verificationEmailCooldown'))
+  // }
 
-  // Resend verification email
-  await sendVerificationEmail(
-    user.email,
-    user.name,
-    newVerificationToken,
-    emailData
-  )
+  // // Generate and save new verification token
+  // const newVerificationToken = await generateAndSaveCode(user)
 
-  res.status(200).json({ message: t('verificationEmailResent') })
+  // // Update the last sent timestamp
+  // user.lastVerificationEmailSentAt = Date.now()
+  // await user.save()
+
+  // const emailData = {
+  //   emailVerificationTitle: t('emailVerificationTitle'),
+  //   confirmEmailAddressTitle: t('confirmEmailAddressTitle'),
+  //   greeting: t('greeting'),
+  //   enterVerificationCodeText: t('enterVerificationCodeText'),
+  //   verificationCodeExpiryText: t('verificationCodeExpiryText'),
+  //   ignoreEmailText: t('ignoreEmailText'),
+  //   thankYouText: t('thankYouText')
+  // }
+
+  // // Resend verification email
+  // await sendVerificationEmail(
+  //   user.email,
+  //   user.name,
+  //   newVerificationToken,
+  //   emailData
+  // )
+
+  // res.status(200).json({ message: t('verificationEmailResent') })
 })
 
 

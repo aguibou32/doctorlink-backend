@@ -17,7 +17,6 @@ import changePasswordSchema from "../schemas/changePasswordSchema.js"
 import requestIp from 'request-ip'
 import loginSchema from "../schemas/loginSchema.js"
 
-
 import { sendVerificationEmail } from "../utils/sendEmail.js"
 
 import { 
@@ -74,7 +73,6 @@ const registerUser = asyncHandler(async (req, res) => {
 
   const salt = await bcrypt.genSalt(10)
   const hashedPassword = await bcrypt.hash(password, salt)
-
 
   const user = new User({
     name,
@@ -144,8 +142,7 @@ const loginUser = asyncHandler(async (req, res) => {
 
     const clientIp = requestIp.getClientIp(req)
 
-    const isKnownDevice = user.devices.some(
-      (device) =>
+    const isKnownDevice = user.devices.some(device =>
         device.deviceId === deviceId &&
         device.deviceName === deviceName &&
         device.clientIp === clientIp
@@ -200,7 +197,10 @@ const loginUser = asyncHandler(async (req, res) => {
     }
 
     user.lastLogin = new Date()
+    user.verificationCode = null
+    user.verificationExpiry = null
     await user.save()
+    
     generateToken(res, user._id)
 
     const userInfo = user.toObject()
@@ -208,7 +208,7 @@ const loginUser = asyncHandler(async (req, res) => {
     delete userInfo.password
     delete userInfo.devices // If too many devices, it makes the cookie too long and the max for a cookie is 4096 bytes 
 
-    return res.status(200).json({ userInfo })
+    return res.status(200).json({ userInfo, message: t('userVerifiedLoginSuccess') })
 
   } else {
     res.status(401)

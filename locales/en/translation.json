@@ -92,5 +92,6 @@
   "verificationCodeRequired": "Verification code is required.",
   "verificationRateLimitError": "You have exceeded the maximum number of verification attempts allowed.",
   "invalidVerificationCode": "Verification code invalid.",
-  "expiredVerificationCode": "Verification code expired"
+  "expiredVerificationCode": "Verification code expired",
+  "userVerifiedLoginSuccess": "Email verified successfully. You are now logged in."
 }
