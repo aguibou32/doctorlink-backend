@@ -33,22 +33,8 @@ const verifyEmail = asyncHandler(async (req, res) => {
     throw new Error(error.errors ? error.errors.join(', ') : 'Validation failed')
   }
 
-  const tempUser = await TempUser.findOne({ email })
-  verifyCode(tempUser, verificationCode, t)
-
-  const user = await User.create({
-    name: tempUser.name,
-    surname: tempUser.surname,
-    gender: tempUser.gender,
-    dob: tempUser.dob,
-    email: tempUser.email,
-    phone: tempUser.phone,
-    isEmailVerified: true,
-    password: tempUser.password
-  })
-
-  // Delete temporary user
-  await tempUser.deleteOne()
+  const user = await User.findOne({ email })
+  verifyCode(user, verificationCode, t)
 
   // Generate token for user session (to log in the user)
   generateToken(res, user._id)
@@ -64,8 +50,26 @@ const verifyEmail = asyncHandler(async (req, res) => {
 
 
 
+// @desc Resend verification email to user
+// @route POST api/users/resend-verification-email
+// @access Public
+const resendUserVerificationEmail = asyncHandler(async (req, res) => {
+  const { t } = req
+  const { email } = req.body
 
-const handleVerificationResend = async (user, t) => {
+  try {
+    await resendVerificationEmailSchema.validate(req.body, { abortEarly: false })
+  } catch (error) {
+    res.status(400)
+    throw new Error(error.errors ? error.errors.join(', ') : 'Validation failed')
+  }
+
+  const user = await User.findOne({ email })
+  if (!user || user.isEmailVerified) {
+    res.status(400)
+    throw new Error(t('userNotFoundOrAlreadyVerified'))
+  }
+
   if (user.userVerificationRateLimit === 5) {
     throw new Error('rateLimitReached')
   }
@@ -100,59 +104,6 @@ const handleVerificationResend = async (user, t) => {
     newVerificationToken,
     emailData
   )
-}
-
-
-
-// @desc Resend verification email to temp user
-// @route POST api/users/resend-temp-user-verification-email
-// @access Public
-const resendTempUserVerificationEmail = asyncHandler(async (req, res) => {
-  const { t } = req
-  const { email } = req.body
-
-  try {
-    await resendVerificationEmailSchema.validate(req.body, { abortEarly: false })
-  } catch (error) {
-    res.status(400)
-    throw new Error(error.errors ? error.errors.join(', ') : 'Validation failed')
-  }
-
-  const tempUser = await TempUser.findOne({ email })
-  if (!tempUser) {
-    res.status(400)
-    throw new Error(t('userNotFoundOrAlreadyVerified'))
-  }
-
-  // Reusing the function above
-  await handleVerificationResend(tempUser, t)
-
-  res.status(200).json({ message: t('verificationEmailResent') })
-})
-
-
-// @desc Resend verification email to user
-// @route POST api/users/resend-verification-email
-// @access Public
-const resendUserVerificationEmail = asyncHandler(async (req, res) => {
-  const { t } = req
-  const { email } = req.body
-
-  try {
-    await resendVerificationEmailSchema.validate(req.body, { abortEarly: false })
-  } catch (error) {
-    res.status(400)
-    throw new Error(error.errors ? error.errors.join(', ') : 'Validation failed')
-  }
-
-  const user = await User.findOne({ email })
-  if (!user || user.isEmailVerified) {
-    res.status(400)
-    throw new Error(t('userNotFoundOrAlreadyVerified'))
-  }
-
-  // Reusing the function above
-  await handleVerificationResend(user, t)
 
   res.status(200).json({ message: t('verificationEmailResent') })
 })
@@ -606,7 +557,6 @@ export {
   verifyEmail,
   send2FACodeBySMS,
   resendUserVerificationEmail,
-  resendTempUserVerificationEmail,
   verifyTwoFactor,
   resend2FACodeByEmail,
   resend2FACodeBySMS,

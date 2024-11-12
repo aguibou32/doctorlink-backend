@@ -60,22 +60,23 @@ const registerUser = asyncHandler(async (req, res) => {
     throw new Error(error.errors ? error.errors.join(', ') : 'Validation failed')
   }
 
+  const userExists = await User.findOne({ email })
+  if (userExists) {
+    res.status(400)
+    throw new Error(t('emailInUse'))
+  }
+
   const phoneInUse = await User.findOne({ phone })
   if (phoneInUse) {
     res.status(400)
     throw new Error(t('phoneInUse'))
   }
 
-  const userExists = await TempUser.findOne({ email })
-  if (userExists) {
-    await userExists.deleteOne()
-  }
-
   const salt = await bcrypt.genSalt(10)
   const hashedPassword = await bcrypt.hash(password, salt)
 
 
-  const tempUser = new TempUser({
+  const user = new User({
     name,
     surname,
     gender,
@@ -85,7 +86,7 @@ const registerUser = asyncHandler(async (req, res) => {
     password: hashedPassword,
   })
 
-  const verificationCode = await generateAndSaveCode(tempUser)
+  const verificationCode = await generateAndSaveCode(user)
   // when we call generateAndSaveToken, we are already saving the user, that's why we not saving the user
   // again in the try catch block
 
@@ -99,8 +100,8 @@ const registerUser = asyncHandler(async (req, res) => {
 
   try {
     await sendVerificationEmail(
-      tempUser.email,
-      tempUser.name,
+      user.email,
+      user.name,
       verificationCode,
       emailVerificationTitle,
       confirmEmailAddressTitle,
@@ -111,12 +112,11 @@ const registerUser = asyncHandler(async (req, res) => {
       thankYouText
     )
 
-    tempUser.lastVerificationEmailSentAt = Date.now()
-    await tempUser.save()
+    user.lastVerificationEmailSentAt = Date.now()
+    await user.save()
 
-    return res.status(200).json({ email: tempUser.email })
+    return res.status(200).json({ email: user.email })
 
-    // res.status(201).json({ email: tempUser.email })
   } catch (error) {
     res.status(500)
     throw new Error(t('cannotSendEmail'))

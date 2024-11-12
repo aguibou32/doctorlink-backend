@@ -6,7 +6,6 @@ import { protect } from '../middleware/authMiddleware.js'
 import {
   verifyEmail,
   resendUserVerificationEmail,
-  resendTempUserVerificationEmail,
   verifyTwoFactor,
   resend2FACodeByEmail,
   send2FACodeBySMS,
@@ -21,7 +20,6 @@ import checkObjectId from '../middleware/checkObjectId.js'
 
 router.route('/verify-email').post(verifyEmail)
 router.route('/resend-user-verification-email').post(resendUserVerificationEmail)
-router.route('/resend-temp-user-verification-email').post(resendTempUserVerificationEmail)
 router.route('/verify-two-factor').post(verifyTwoFactor)
 router.route('/resend-2FA-code-by-email').post(resend2FACodeByEmail)
 router.route('/send-2FA-code-by-sms').post(send2FACodeBySMS)
