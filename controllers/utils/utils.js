@@ -51,24 +51,32 @@ export const checkEmailInUse = asyncHandler(async (req, res) => {
     throw new Error(t('phoneInUse'))
   } else {
     res.status(200).json({ message: t('phoneAvailable') })
-  }
+  } 
 })
 
- // Helper function to use User or Temp model function generateVerificationToken() 
+ // Helper function to use User model function generateVerificationToken() 
  // to generate and save token to database
- export const generateAndSaveCode = async user => {
-  if (user.verificationCodeRateLimit <= 0) {
+ export const generateAndSaveCode = async (user, t) => {
+
+  const twoHoursAgo = new Date() - 2 * 60 * 60 * 1000
+
+  if(user.lastVerificationEmailSentAt && user.lastVerificationEmailSentAt > twoHoursAgo){
+    user.userVerificationRateLimit = 0
+  }
+
+  if (user.userVerificationRateLimit <= 0) {
     throw new Error(t('verificationRateLimitError'))
   }
   const verificationCode = await user.generateVerificationCode()
 
-  user.verificationCodeRateLimit -= 1
+  user.userVerificationRateLimit -=1 
+  user.lastVerificationEmailSentAt = new Date() // This logic doesn't belong in here but we just assuming that anytime a code is generate, it is sent to the user. 
   await user.save()
   
   return verificationCode
 }
 
-// Helper function to verify token for TempUser or regular User
+// Helper function to verify token for User
 export const verifyCode = (user, token, t) => {
   if (!user) throw new Error(t('userNotFound'))
   if (user.verificationCode !== token) throw new Error(t('invalidVerificationCode'))
