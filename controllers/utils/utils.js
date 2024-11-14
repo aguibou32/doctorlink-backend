@@ -60,8 +60,8 @@ export const checkEmailInUse = asyncHandler(async (req, res) => {
 
   const twoHoursAgo = new Date() - 2 * 60 * 60 * 1000
 
-  if(user.lastVerificationEmailSentAt && user.lastVerificationEmailSentAt > twoHoursAgo){
-    user.userVerificationRateLimit = 0
+  if(!user.lastVerificationEmailSentAt || user.lastVerificationEmailSentAt < twoHoursAgo){
+    user.userVerificationRateLimit = 5
   }
 
   if (user.userVerificationRateLimit <= 0) {

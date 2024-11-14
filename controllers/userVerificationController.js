@@ -1,12 +1,8 @@
 import generateToken from "../utils/generateToken.js"
 import verifyEmailSchema from "../schemas/verifyEmailSchema.js"
-import resend2FACodeSchema from "../schemas/resend2FACodeSchema.js"
 import asyncHandler from "../middleware/asyncHandler.js"
 import User from "../models/UserModel.js"
-import verifyTwoFactorSchema from "../schemas/verifyTwoFactorSchema.js"
-import { sendTwoFactorCode } from "../utils/sendEmail.js"
 import send2FACodeBySMSSchema from "../schemas/send2FACodeBySMSSchema.js"
-import sendEmailChangeVerificationSchema from "../schemas/sendEmailChangeVerificationSchema.js"
 import twilioClient from "../utils/twilioClient.js"
 import requestIp from 'request-ip'
 
@@ -107,24 +103,27 @@ const resendVerificationEmail = asyncHandler(async (req, res) => {
   // Generate and save new verification token
   const newVerificationCode = await generateAndSaveCode(user, t)
 
-  const emailData = {
-    emailVerificationTitle: t('emailVerificationTitle'),
-    confirmEmailAddressTitle: t('confirmEmailAddressTitle'),
-    greeting: t('greeting'),
-    enterVerificationCodeText: t('enterVerificationCodeText'),
-    verificationCodeExpiryText: t('verificationCodeExpiryText'),
-    ignoreEmailText: t('ignoreEmailText'),
-    thankYouText: t('thankYouText')
-  }
+    const emailVerificationTitle =  t('emailVerificationTitle')
+    const confirmEmailAddressTitle =  t('confirmEmailAddressTitle')
+    const greeting = t('greeting')
+    const enterVerificationCodeText = t('enterVerificationCodeText')
+    const verificationCodeExpiryText = t('verificationCodeExpiryText')
+    const ignoreEmailText = t('ignoreEmailText')
+    const thankYouText = t('thankYouText')
 
   // Resend verification email
   await sendVerificationEmail(
     user.email,
     user.name,
     newVerificationCode,
-    emailData
+    emailVerificationTitle,
+    confirmEmailAddressTitle,
+    greeting,
+    enterVerificationCodeText,
+    verificationCodeExpiryText,
+    ignoreEmailText,
+    thankYouText
   )
-
   res.status(200).json({ message: t('verificationEmailResent') })
 })
 

@@ -18,19 +18,19 @@ const registerSchema = yup.object().shape({
   surname: yup.string()
     .required(() => i18next.t('surnameRequired'))
     .matches(/^[A-Za-z\s]+$/, () => i18next.t('surnameInvalid')), // Only letters and spaces
-  dob: yup.string()
+  dob: yup.date()
     .required(() => i18next.t('dobRequired'))
     .test(
       'is-valid-dob',
       () => i18next.t('dobInvalid'),
-      (value) => value ? moment(value, 'DD/MM/YYYY', true).isValid() : false
+      (value) => value ? moment(value, 'YYYY-MM-DD', true).isValid() : false
     )
     .test(
       'is-reasonable-age',
       () => i18next.t('dobMax'),
       (value) => {
         if (!value) return false 
-        const date = moment(value, 'DD/MM/YYYY') 
+        const date = moment(value, 'DD/MM/YYYY')
         return date.isValid() && date.isBefore(moment()) && date.year() > 1900 
       }
     ),
