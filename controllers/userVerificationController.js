@@ -34,6 +34,7 @@ const verifyEmail = asyncHandler(async (req, res) => {
     res.status(404)
     throw new Error(t('userNotFound'))
   }
+  
   verifyCode(user, verificationCode, t)
 
   const clientIp = requestIp.getClientIp(req)
