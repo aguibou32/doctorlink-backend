@@ -85,6 +85,7 @@ const registerUser = asyncHandler(async (req, res) => {
 
   const verificationCode = await generateAndSaveCode(user)
   // when we call generateAndSaveToken, we are already saving the user, that's why we not saving the user
+
   // again in the try catch block
 
   const emailVerificationTitle = t('emailVerificationTitle')
@@ -333,6 +334,7 @@ const forgotPassword = asyncHandler(async (req, res) => {
 // @route POST api/users/reset-password
 // @access Public
 const resetPassword = asyncHandler(async (req, res) => {
+
   const { t } = req
   const { newPassword, token } = req.body
 
@@ -346,7 +348,6 @@ const resetPassword = asyncHandler(async (req, res) => {
     resetPasswordToken: token,
     resetPasswordExpiry: { $gt: Date.now() } // Making sure the token hasn't expired
   })
-
 
   if (!user) {
     res.status(400)
@@ -371,6 +372,7 @@ const resetPassword = asyncHandler(async (req, res) => {
 // @route POST api/users/change-password
 // @access Private
 const changePassword = asyncHandler(async (req, res) => {
+
   const { t } = req
   const { currentPassword, newPassword } = req.body
 

@@ -1,7 +1,7 @@
 import * as yup from "yup" 
 import i18next from "i18next" 
 
-const verifyEmailSchema = yup.object().shape({
+const verifyUserSchema = yup.object().shape({
   email: yup.string()
   .email(() => i18next.t('emailInvalid'))
   .required(() => i18next.t('emailRequired')),
@@ -11,4 +11,4 @@ const verifyEmailSchema = yup.object().shape({
   .max(6, () => i18next.t('verificationCodeMaxLength')) 
 })
 
-export default verifyEmailSchema
+export default verifyUserSchema

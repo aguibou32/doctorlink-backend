@@ -36,6 +36,7 @@ app.use(express.urlencoded({ extended: true }))
 app.use('/api/users', userRoutes)
 app.use('/api/user-verification', userVerificationRoutes)
 
+
 app.use(notFound)
 app.use(errorHandler)
 

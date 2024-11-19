@@ -54,7 +54,7 @@
   "expirationNotice": "This password reset link will expire in 30 minutes",
   "ignoreInstruction": "If you did not request this password reset, please ignore this email",
   "thankYou": "Thank you for using our service!",
-  "passwordResetSuccessful": "Your password has been reset successfully",
+  "passwordResetSuccessful": "Your password has been reset successfully.",
   "currentPasswordIncorrect": "The current password you entered is incorrect.",
   "passwordUpdatedSuccessfully": "Your password has been updated successfully.",
   "currentPasswordRequired": "Current password is required",

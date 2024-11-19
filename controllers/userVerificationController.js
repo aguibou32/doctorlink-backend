@@ -1,12 +1,12 @@
 import generateToken from "../utils/generateToken.js"
-import verifyEmailSchema from "../schemas/verifyEmailSchema.js"
+import verifyUserSchema from "../schemas/verifyUserSchema.js"
 import asyncHandler from "../middleware/asyncHandler.js"
 import User from "../models/UserModel.js"
-import send2FACodeBySMSSchema from "../schemas/send2FACodeBySMSSchema.js"
+import sendVerificationCodeBySMSSchema from "../schemas/sendVerificationCodeByEmailSchema.js"
 import twilioClient from "../utils/twilioClient.js"
 import requestIp from 'request-ip'
 
-import resendVerificationEmailSchema from '../schemas/resendVerificationEmailSchema.js'
+import sendVerificationCodeByEmailSchema from '../schemas/sendVerificationCodeByEmailSchema.js'
 import { generateAndSaveCode } from "./utils/utils.js"
 import { sendVerificationEmail } from "../utils/sendEmail.js"
 
@@ -14,16 +14,16 @@ import {
   verifyCode,
 } from "./utils/utils.js"
 
-// @desc Verify email
-// @route POST api/users/verify-email
+// @desc Verify user
+// @route POST api/users/verify-user
 // @access Public
-const verifyEmail = asyncHandler(async (req, res) => {
+const verifyUser = asyncHandler(async (req, res) => {
 
   const { t } = req
   const { email, verificationCode, deviceId, deviceName } = req.body
 
   try {
-    await verifyEmailSchema.validate(req.body, { abortEarly: false })
+    await verifyUserSchema.validate(req.body, { abortEarly: false })
   } catch (error) {
     res.status(400)
     throw new Error(error.errors ? error.errors.join(', ') : 'Validation failed.')
@@ -75,15 +75,17 @@ const verifyEmail = asyncHandler(async (req, res) => {
 })
 
 // @desc Resend verification email to user
-// @route POST api/users/resend-verification-email
+// @route POST api/user-verification/resend-verification-code-by-email
 // @access Public
-const resendVerificationEmail = asyncHandler(async (req, res) => {
+const resendVerificationCodeByEmail = asyncHandler(async (req, res) => {
+
+  console.log(req.body)
 
   const { t } = req
   const { email } = req.body
 
   try {
-    await resendVerificationEmailSchema.validate(req.body, { abortEarly: false })
+    await sendVerificationCodeByEmailSchema.validate(req.body, { abortEarly: false })
   } catch (error) {
     res.status(400)
     throw new Error(error.errors ? error.errors.join(', ') : 'Validation failed')
@@ -125,20 +127,23 @@ const resendVerificationEmail = asyncHandler(async (req, res) => {
     ignoreEmailText,
     thankYouText
   )
+
   res.status(200).json({ message: t('verificationEmailResent') })
 })
 
 
-// @desc Resend 2FA code by SMS
-// @route POST api/verify-user/resend-2FA-code-by-sms
+// @desc Sends verification code to user's phone
+// @route POST api/user-verification/send-verification-code-by-sms
 // @access Public
-const send2FACodeBySMS = asyncHandler(async (req, res) => {
-
+const sendVerificationCodeBySMS = asyncHandler(async (req, res) => {
+  
+  console.log(req.body)
+  
   const { t } = req
   const { email, phone } = req.body
 
   try {
-    await send2FACodeBySMSSchema.validate(req.body, { abortEarly: false })
+    await sendVerificationCodeBySMSSchema.validate(req.body, { abortEarly: false })
   } catch (error) {
     res.status(400)
     throw new Error(error.errors ? error.errors.join(', ') : t('validationFailed'))
@@ -193,7 +198,7 @@ const send2FACodeBySMS = asyncHandler(async (req, res) => {
 
 
 export {
-  verifyEmail,
-  resendVerificationEmail,
-  send2FACodeBySMS,
+  verifyUser,
+  resendVerificationCodeByEmail,
+  sendVerificationCodeBySMS
 }
